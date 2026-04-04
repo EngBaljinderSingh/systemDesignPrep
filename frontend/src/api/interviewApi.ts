@@ -9,10 +9,7 @@ const api = axios.create({
 export const interviewApi = {
   start: (userId: string, problemTitle: string, problemDescription: string, difficulty: string) =>
     api.post<InterviewSessionResponse>('/sessions', {
-      userId,
-      problemTitle,
-      problemDescription,
-      difficulty,
+      userId, problemTitle, problemDescription, difficulty,
     }),
 
   getSession: (sessionId: string) =>
@@ -29,4 +26,21 @@ export const interviewApi = {
 
   analyzeCanvas: (sessionId: string) =>
     api.post<FeedbackItem[]>(`/sessions/${sessionId}/canvas/analyze`),
+
+  reviewCode: (request: {
+    code: string;
+    language: string;
+    problemTitle: string;
+    problemDescription: string;
+  }) =>
+    api.post<{ review: string }>('/code/review', request),
+
+  getHint: (request: {
+    code: string;
+    language: string;
+    problemTitle: string;
+    problemDescription: string;
+    hintLevel: 'GENTLE' | 'MEDIUM' | 'DIRECT';
+  }) =>
+    api.post<{ hint: string }>('/code/hint', request),
 };

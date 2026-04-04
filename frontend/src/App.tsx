@@ -5,6 +5,7 @@ import AlgorithmPatternsPage from './pages/AlgorithmPatternsPage';
 import SystemDesignPatternsPage from './pages/SystemDesignPatternsPage';
 import ProblemsPage from './pages/ProblemsPage';
 import CanvasPage from './pages/CanvasPage';
+import CodeEditorPage from './pages/CodeEditorPage';
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
             <Route path="/algorithms" element={<AlgorithmPatternsPage />} />
             <Route path="/system-design" element={<SystemDesignPatternsPage />} />
             <Route path="/problems" element={<ProblemsPage />} />
+            <Route path="/code" element={<CodeEditorPage />} />
             <Route path="/canvas" element={<CanvasPage />} />
           </Routes>
         </main>

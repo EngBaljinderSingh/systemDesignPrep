@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { problems } from '../data/problems';
+import { problems, type Problem } from '../data/problems';
 import { algorithmPatterns } from '../data/algorithmPatterns';
+import CodeEditorPage from './CodeEditorPage';
 
 const DIFFICULTY_COLORS = {
   Easy: 'text-green-400',
@@ -18,6 +19,7 @@ export default function ProblemsPage() {
   const [difficultyFilter, setDifficultyFilter] = useState<'All' | 'Easy' | 'Medium' | 'Hard'>('All');
   const [patternFilter, setPatternFilter] = useState<string>('All');
   const [search, setSearch] = useState('');
+  const [solvingProblem, setSolvingProblem] = useState<Problem | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const patternOptions = ['All', ...algorithmPatterns.map((p) => p.id)];
@@ -37,6 +39,18 @@ export default function ProblemsPage() {
   };
 
   return (
+    <>
+      {/* Full-screen editor overlay */}
+      {solvingProblem && (
+        <div className="fixed inset-0 z-50 bg-surface flex flex-col">
+          <CodeEditorPage
+            problemTitle={solvingProblem.title}
+            problemDescription={solvingProblem.description}
+            onClose={() => setSolvingProblem(null)}
+          />
+        </div>
+      )}
+
     <div className="max-w-4xl mx-auto px-6 py-6">
       {/* Stats row */}
       <div className="flex gap-4 mb-6">
@@ -136,6 +150,12 @@ export default function ProblemsPage() {
                 )}
               </div>
               <span className="text-gray-600 text-xs flex-shrink-0">{expanded === problem.id ? '▲' : '▼'}</span>
+              <button
+                onClick={(e) => { e.stopPropagation(); setSolvingProblem(problem); }}
+                className="text-xs px-2.5 py-1 bg-primary/80 text-white rounded hover:bg-primary font-medium flex-shrink-0"
+              >
+                Solve →
+              </button>
             </button>
 
             {/* Expanded detail */}
@@ -163,5 +183,6 @@ export default function ProblemsPage() {
         ))}
       </div>
     </div>
+    </>
   );
 }

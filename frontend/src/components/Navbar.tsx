@@ -5,6 +5,7 @@ const links = [
   { to: '/algorithms', label: 'Algo Patterns' },
   { to: '/system-design', label: 'System Design' },
   { to: '/problems', label: 'Problems' },
+  { to: '/code', label: 'Code Editor' },
   { to: '/canvas', label: 'Interview Canvas' },
 ];
 

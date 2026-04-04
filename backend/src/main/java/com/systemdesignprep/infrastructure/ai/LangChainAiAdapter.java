@@ -76,6 +76,14 @@ public class LangChainAiAdapter implements AiGateway {
         return chatModel.generate(prompt);
     }
 
+    /**
+     * General-purpose single-turn prompt — used by CodeController for review/hints.
+     */
+    public String generateRawResponse(String prompt) {
+        log.debug("Sending raw prompt to LLM ({} chars)", prompt.length());
+        return chatModel.generate(prompt);
+    }
+
     private String buildSystemPrompt(InterviewPhase phase, CanvasState canvasState) {
         String canvasContext = canvasState.isEmpty()
                 ? "The candidate has not drawn any architecture yet."
