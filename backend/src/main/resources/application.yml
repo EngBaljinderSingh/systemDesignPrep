@@ -61,13 +61,15 @@ server:
 
 # ── AI Configuration ──
 ai:
-  provider: ${AI_PROVIDER:gemini}
   gemini:
     api-key: ${GEMINI_API_KEY:}
     model: gemini-2.0-flash
   claude:
     api-key: ${CLAUDE_API_KEY:}
     model: claude-sonnet-4-20250514
+  ollama:
+    base-url: ${OLLAMA_BASE_URL:http://ollama:11434}
+    model: ${OLLAMA_MODEL:llama3.2:1b}
 
 # ── Logging ──
 logging:
