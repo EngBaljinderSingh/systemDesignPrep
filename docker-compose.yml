@@ -1,0 +1,122 @@
+services:
+  # ──────────────────────────────────────────────
+  # Backend — Spring Boot 3 (Hexagonal)
+  # ──────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/systemdesignprep
+      SPRING_DATASOURCE_USERNAME: sdp_user
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-sdp_local_pass}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      AI_PROVIDER: gemini
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-REDACTED_GEMINI_KEY}
+      CLAUDE_API_KEY: ${CLAUDE_API_KEY:-REDACTED_CLAUDE_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - sdp-network
+
+  # ──────────────────────────────────────────────
+  # Frontend — React 18 + TypeScript
+  # ──────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:8080/api/v1
+    depends_on:
+      - backend
+    networks:
+      - sdp-network
+
+  # ──────────────────────────────────────────────
+  # PostgreSQL (mirrors Supabase in production)
+  # ──────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: systemdesignprep
+      POSTGRES_USER: sdp_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-sdp_local_pass}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sdp_user -d systemdesignprep"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sdp-network
+
+  # ──────────────────────────────────────────────
+  # Redis (Session + Cache)
+  # ──────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sdp-network
+
+  # ──────────────────────────────────────────────
+  # Observability — Prometheus
+  # ──────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - backend
+    networks:
+      - sdp-network
+
+  # ──────────────────────────────────────────────
+  # Observability — Grafana
+  # ──────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.0
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+    depends_on:
+      - prometheus
+    networks:
+      - sdp-network
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  sdp-network:
+    driver: bridge
