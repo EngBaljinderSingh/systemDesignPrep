@@ -1,6 +1,14 @@
 import { useState, useCallback } from 'react';
+import type { AxiosError } from 'axios';
 import Editor from '@monaco-editor/react';
 import { interviewApi } from '../api/interviewApi';
+
+function extractErrorMessage(err: unknown): string {
+  const axiosErr = err as AxiosError<{ message?: string }>;
+  if (axiosErr?.response?.data?.message) return axiosErr.response.data.message;
+  if (axiosErr?.message) return axiosErr.message;
+  return 'Unknown error — check that the backend is running.';
+}
 
 const LANGUAGES = [
   { id: 'java', label: 'Java', monacoId: 'java' },
@@ -77,6 +85,7 @@ interface AiPanel {
   type: 'review' | 'hint';
   content: string;
   loading: boolean;
+  isError?: boolean;
 }
 
 export interface CodeEditorProps {
@@ -106,8 +115,8 @@ export default function CodeEditorPage({ problemTitle, problemDescription, onClo
         problemDescription: problemDescription ?? '',
       });
       setAiPanel({ type: 'review', content: data.review, loading: false });
-    } catch {
-      setAiPanel({ type: 'review', content: 'Failed to get AI review. Make sure the backend is running.', loading: false });
+    } catch (err) {
+      setAiPanel({ type: 'review', content: extractErrorMessage(err), loading: false, isError: true });
     }
   }, [code, language, problemTitle, problemDescription]);
 
@@ -122,8 +131,8 @@ export default function CodeEditorPage({ problemTitle, problemDescription, onClo
         hintLevel,
       });
       setAiPanel({ type: 'hint', content: data.hint, loading: false });
-    } catch {
-      setAiPanel({ type: 'hint', content: 'Failed to get hint. Make sure the backend is running.', loading: false });
+    } catch (err) {
+      setAiPanel({ type: 'hint', content: extractErrorMessage(err), loading: false, isError: true });
     }
   }, [code, language, problemTitle, problemDescription, hintLevel]);
 
@@ -229,6 +238,19 @@ export default function CodeEditorPage({ problemTitle, problemDescription, onClo
               {aiPanel.loading ? (
                 <div className="flex items-center gap-2 text-gray-400 text-sm">
                   <span className="animate-spin">⟳</span> Thinking…
+                </div>
+              ) : aiPanel.isError ? (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2 text-red-400 text-sm">
+                    <span className="text-lg leading-none mt-0.5">⚠</span>
+                    <p>{aiPanel.content}</p>
+                  </div>
+                  <div className="text-xs text-gray-500 border-t border-gray-700 pt-3 space-y-1">
+                    <p className="font-medium text-gray-400">To enable AI features:</p>
+                    <p>• Get a free <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="text-primary underline">Gemini API key</a> (1 500 req/day)</p>
+                    <p>• Add it to your <code className="text-yellow-400">.env</code> file as <code className="text-yellow-400">GEMINI_API_KEY=…</code></p>
+                    <p>• Run <code className="text-yellow-400">docker compose up --build</code></p>
+                  </div>
                 </div>
               ) : (
                 <pre className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{aiPanel.content}</pre>
