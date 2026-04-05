@@ -43,11 +43,26 @@ export default function ProblemsPage() {
       {/* Full-screen editor overlay */}
       {solvingProblem && (
         <div className="fixed inset-0 z-50 bg-surface flex flex-col">
-          <CodeEditorPage
-            problemTitle={solvingProblem.title}
-            problemDescription={solvingProblem.description}
-            onClose={() => setSolvingProblem(null)}
-          />
+          {/* Header bar */}
+          <div className="flex items-center gap-3 px-4 h-12 bg-surface-light border-b border-gray-700 flex-shrink-0">
+            <button
+              onClick={() => setSolvingProblem(null)}
+              className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              ← Problems
+            </button>
+            <span className="text-gray-700">|</span>
+            <span className="text-sm font-medium text-white truncate">{solvingProblem.title}</span>
+            <span className={`text-xs flex-shrink-0 ${DIFFICULTY_COLORS[solvingProblem.difficulty]}`}>
+              {solvingProblem.difficulty}
+            </span>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <CodeEditorPage
+              problemTitle={solvingProblem.title}
+              problemDescription={solvingProblem.description}
+            />
+          </div>
         </div>
       )}
 

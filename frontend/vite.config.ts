@@ -16,6 +16,11 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/piston': {
+        target: 'http://localhost:2000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/piston/, ''),
+      },
     },
   },
 });

@@ -8,6 +8,7 @@ import {
   Background,
   BackgroundVariant,
   Panel,
+  ConnectionMode,
   type Node,
   type Edge,
   type OnConnect,
@@ -123,6 +124,7 @@ export default function DesignCanvas() {
           onConnect={onConnect}
           onNodeDoubleClick={onNodeDoubleClick}
           nodeTypes={nodeTypes}
+          connectionMode={ConnectionMode.Loose}
           fitView
           deleteKeyCode="Delete"
           className="bg-surface"

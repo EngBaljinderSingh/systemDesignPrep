@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { algorithmPatterns, type AlgorithmPattern } from '../data/algorithmPatterns';
+import PatternVisualization from '../components/PatternVisualization';
 
 const CATEGORY_COLORS: Record<string, string> = {
   Array: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
@@ -45,6 +46,9 @@ function PatternDetail({ pattern }: { pattern: AlgorithmPattern }) {
           ))}
         </ul>
       </div>
+
+      {/* Visualization */}
+      <PatternVisualization patternId={pattern.id} />
 
       {/* Code template */}
       <div>

@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import type { AxiosError } from 'axios';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import axios, { type AxiosError } from 'axios';
 import Editor from '@monaco-editor/react';
 import { interviewApi } from '../api/interviewApi';
 
@@ -20,38 +20,67 @@ const LANGUAGES = [
   { id: 'csharp', label: 'C#', monacoId: 'csharp' },
 ];
 
+// Maps our language IDs to Piston language names and filenames.
+// Versions are resolved dynamically from /piston/api/v2/runtimes at runtime.
+const PISTON_LANGUAGES: Record<string, { language: string; filename: string }> = {
+  java:       { language: 'java',       filename: 'Solution.java' },
+  python:     { language: 'python',     filename: 'solution.py'   },
+  javascript: { language: 'javascript', filename: 'solution.js'   },
+  typescript: { language: 'typescript', filename: 'solution.ts'   },
+  cpp:        { language: 'c++',        filename: 'solution.cpp'  },
+  go:         { language: 'go',         filename: 'solution.go'   },
+  csharp:     { language: 'mono',       filename: 'solution.cs'   },
+};
+
+// Fetches installed runtimes once and returns a version map keyed by piston language name.
+async function fetchRuntimeVersions(): Promise<Record<string, string>> {
+  try {
+    const { data } = await axios.get<{ language: string; version: string }[]>('/piston/api/v2/runtimes');
+    const map: Record<string, string> = {};
+    for (const r of data) map[r.language] = r.version;
+    return map;
+  } catch {
+    return {};
+  }
+}
+
 const STARTERS: Record<string, string> = {
-  java: `// Java Solution
-import java.util.*;
+  java: `import java.util.*;
 
 public class Solution {
     public int solve(int[] nums) {
         // Write your solution here
-        return 0;
+        return nums[0];
+    }
+
+    public static void main(String[] args) {
+        Solution s = new Solution();
+        System.out.println(s.solve(new int[]{1, 2, 3, 4, 5}));
     }
 }`,
-  python: `# Python Solution
-from typing import List
+  python: `from typing import List
 
 class Solution:
     def solve(self, nums: List[int]) -> int:
         # Write your solution here
-        return 0`,
-  javascript: `// JavaScript Solution
-/**
- * @param {number[]} nums
- * @return {number}
- */
-var solve = function(nums) {
+        return nums[0]
+
+if __name__ == "__main__":
+    s = Solution()
+    print(s.solve([1, 2, 3, 4, 5]))`,
+  javascript: `function solve(nums) {
     // Write your solution here
-    return 0;
-};`,
-  typescript: `// TypeScript Solution
-function solve(nums: number[]): number {
+    return nums[0];
+}
+
+console.log(solve([1, 2, 3, 4, 5]));`,
+  typescript: `function solve(nums: number[]): number {
     // Write your solution here
-    return 0;
-}`,
-  cpp: `// C++ Solution
+    return nums[0];
+}
+
+console.log(solve([1, 2, 3, 4, 5]));`,
+  cpp: `#include <iostream>
 #include <vector>
 using namespace std;
 
@@ -59,24 +88,40 @@ class Solution {
 public:
     int solve(vector<int>& nums) {
         // Write your solution here
-        return 0;
+        return nums[0];
     }
-};`,
-  go: `// Go Solution
-package main
+};
+
+int main() {
+    Solution s;
+    vector<int> nums = {1, 2, 3, 4, 5};
+    cout << s.solve(nums) << endl;
+    return 0;
+}`,
+  go: `package main
+
+import "fmt"
 
 func solve(nums []int) int {
     // Write your solution here
-    return 0
+    return nums[0]
+}
+
+func main() {
+    fmt.Println(solve([]int{1, 2, 3, 4, 5}))
 }`,
-  csharp: `// C# Solution
-using System;
+  csharp: `using System;
 using System.Collections.Generic;
 
 public class Solution {
     public int Solve(int[] nums) {
         // Write your solution here
-        return 0;
+        return nums[0];
+    }
+
+    public static void Main(string[] args) {
+        var s = new Solution();
+        Console.WriteLine(s.Solve(new int[]{1, 2, 3, 4, 5}));
     }
 }`,
 };
@@ -86,6 +131,13 @@ interface AiPanel {
   content: string;
   loading: boolean;
   isError?: boolean;
+}
+
+interface RunOutput {
+  stdout: string;
+  stderr: string;
+  exitCode: number | null;
+  loading: boolean;
 }
 
 export interface CodeEditorProps {
@@ -99,6 +151,12 @@ export default function CodeEditorPage({ problemTitle, problemDescription, onClo
   const [code, setCode] = useState(STARTERS['java']);
   const [aiPanel, setAiPanel] = useState<AiPanel | null>(null);
   const [hintLevel, setHintLevel] = useState<'GENTLE' | 'MEDIUM' | 'DIRECT'>('GENTLE');
+  const [runOutput, setRunOutput] = useState<RunOutput | null>(null);
+  const runtimeVersions = useRef<Record<string, string>>({});
+
+  useEffect(() => {
+    fetchRuntimeVersions().then((v) => { runtimeVersions.current = v; });
+  }, []);
 
   const switchLanguage = useCallback((lang: string) => {
     setLanguage(lang);
@@ -119,6 +177,49 @@ export default function CodeEditorPage({ problemTitle, problemDescription, onClo
       setAiPanel({ type: 'review', content: extractErrorMessage(err), loading: false, isError: true });
     }
   }, [code, language, problemTitle, problemDescription]);
+
+  const runCode = useCallback(async () => {
+    const pistonLang = PISTON_LANGUAGES[language];
+    if (!pistonLang) return;
+    setRunOutput({ stdout: '', stderr: '', exitCode: null, loading: true });
+
+    // Use dynamically discovered version, refresh if cache is empty
+    let versions = runtimeVersions.current;
+    if (!versions[pistonLang.language]) {
+      versions = await fetchRuntimeVersions();
+      runtimeVersions.current = versions;
+    }
+    const version = versions[pistonLang.language];
+    if (!version) {
+      setRunOutput({
+        stdout: '',
+        stderr: `Runtime "${pistonLang.language}" is not installed yet.\nWait ~60s after first \`docker compose up\` for piston-init to finish.\nOr check: http://localhost:2000/api/v2/runtimes`,
+        exitCode: -1,
+        loading: false,
+      });
+      return;
+    }
+
+    try {
+      const { data } = await axios.post('/piston/api/v2/execute', {
+        language: pistonLang.language,
+        version,
+        files: [{ name: pistonLang.filename, content: code }],
+      });
+      const run = data.run as { stdout: string; stderr: string; code: number | null };
+      setRunOutput({ stdout: run.stdout ?? '', stderr: run.stderr ?? '', exitCode: run.code, loading: false });
+    } catch (err) {
+      const msg = extractErrorMessage(err);
+      setRunOutput({
+        stdout: '',
+        stderr: msg.includes('Network Error') || msg.includes('502') || msg.includes('503')
+          ? 'Code runner not available.\nRun: docker compose up --build\nPiston initialises on first start — wait ~30s for runtimes to install.'
+          : msg,
+        exitCode: -1,
+        loading: false,
+      });
+    }
+  }, [code, language]);
 
   const getHint = useCallback(async () => {
     setAiPanel({ type: 'hint', content: '', loading: true });
@@ -174,6 +275,12 @@ export default function CodeEditorPage({ problemTitle, problemDescription, onClo
             <option value="DIRECT">Direct hint</option>
           </select>
           <button
+            onClick={runCode}
+            className="text-xs px-3 py-1.5 bg-emerald-600/80 text-white rounded hover:bg-emerald-500/80 font-medium"
+          >
+            ▶ Run
+          </button>
+          <button
             onClick={getHint}
             className="text-xs px-3 py-1.5 bg-yellow-600/80 text-white rounded hover:bg-yellow-500/80 font-medium"
           >
@@ -202,7 +309,8 @@ export default function CodeEditorPage({ problemTitle, problemDescription, onClo
           </div>
         )}
 
-        {/* Monaco Editor */}
+        {/* Monaco Editor + Output */}
+        <div className="flex flex-col flex-1 overflow-hidden">
         <div className="flex-1 overflow-hidden">
           <Editor
             height="100%"
@@ -223,6 +331,35 @@ export default function CodeEditorPage({ problemTitle, problemDescription, onClo
               padding: { top: 12 },
             }}
           />
+        </div>
+
+        {/* Output panel */}
+        {runOutput && (
+          <div className="flex-shrink-0 border-t border-gray-700 bg-gray-950 flex flex-col" style={{ height: '160px' }}>
+            <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-700 flex-shrink-0">
+              <span className="text-xs font-semibold text-gray-400 flex items-center gap-2">
+                ▶ Output
+                {!runOutput.loading && runOutput.exitCode !== null && (
+                  <span className={runOutput.exitCode === 0 ? 'text-emerald-400' : 'text-red-400'}>
+                    {runOutput.exitCode === 0 ? '✓ exit 0' : `✗ exit ${runOutput.exitCode}`}
+                  </span>
+                )}
+              </span>
+              <button onClick={() => setRunOutput(null)} className="text-gray-600 hover:text-white text-base leading-none">×</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 font-mono text-xs">
+              {runOutput.loading ? (
+                <span className="text-gray-500 animate-pulse">Running…</span>
+              ) : (
+                <>
+                  {runOutput.stdout && <pre className="text-gray-200 whitespace-pre-wrap">{runOutput.stdout}</pre>}
+                  {runOutput.stderr && <pre className="text-red-400 whitespace-pre-wrap">{runOutput.stderr}</pre>}
+                  {!runOutput.stdout && !runOutput.stderr && <span className="text-gray-600 italic">(no output)</span>}
+                </>
+              )}
+            </div>
+          </div>
+        )}
         </div>
 
         {/* AI panel */}

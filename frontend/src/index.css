@@ -6,3 +6,38 @@ body {
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
+
+/* ── React Flow dark-theme overrides ───────────────────────── */
+.react-flow__controls {
+  background: #2a2a3e;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background: #2a2a3e !important;
+  border-bottom: 1px solid #374151 !important;
+  width: 26px;
+  height: 26px;
+}
+
+.react-flow__controls-button:hover {
+  background: #374151 !important;
+}
+
+.react-flow__controls-button svg {
+  fill: #e5e7eb !important;
+  max-width: 14px;
+  max-height: 14px;
+}
+
+.react-flow__controls-button:disabled svg {
+  fill: #4b5563 !important;
+}
+
+.react-flow__minimap {
+  background: #1e1e2e !important;
+  border: 1px solid #374151;
+}
+

@@ -130,6 +130,75 @@ services:
     networks:
       - sdp-network
 
+  # ──────────────────────────────────────────────
+  # Piston — self-hosted sandboxed code execution
+  # ──────────────────────────────────────────────
+  piston:
+    image: ghcr.io/engineer-man/piston
+    privileged: true
+    tmpfs:
+      - /piston/jobs
+    ports:
+      - "2000:2000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2000/api/v2/runtimes"]
+      interval: 15s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+    networks:
+      - sdp-network
+
+  # Installs language runtimes into Piston on first start
+  piston-init:
+    image: alpine:3.19
+    restart: on-failure:5
+    depends_on:
+      piston:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        apk add --no-cache curl jq > /dev/null 2>&1
+
+        echo "Querying Piston package registry..."
+        PACKAGES=$(curl -sf http://piston:2000/api/v2/packages)
+        COUNT=$(echo "$PACKAGES" | jq length 2>/dev/null || echo 0)
+        echo "Found $COUNT packages in registry"
+
+        if [ "$COUNT" = "0" ]; then
+          echo "ERROR: Piston registry returned no packages. Check piston container internet access."
+          exit 1
+        fi
+
+        install_lang() {
+          LANG=$1
+          VERSION=$(echo "$PACKAGES" | jq -r "[.[] | select(.language == \"$LANG\")] | .[0] | .language_version // empty")
+          if [ -z "$VERSION" ]; then
+            echo "SKIP: '$LANG' not found in registry"
+            return
+          fi
+          echo "Installing $LANG $VERSION ..."
+          RESULT=$(curl -sS -X POST http://piston:2000/api/v2/packages \
+            -H 'Content-Type: application/json' \
+            -d "{\"language\":\"$LANG\",\"version\":\"$VERSION\"}" 2>&1)
+          echo "  -> $RESULT"
+        }
+
+        install_lang python
+        install_lang javascript
+        install_lang typescript
+        install_lang java
+        install_lang "c++"
+        install_lang go
+        install_lang mono
+
+        echo "Piston runtime installation complete."
+        echo "Installed runtimes: $(curl -sf http://piston:2000/api/v2/runtimes | jq -r '[.[].language] | join(\", \")')"
+    networks:
+      - sdp-network
+
 volumes:
   pgdata:
     driver: local
