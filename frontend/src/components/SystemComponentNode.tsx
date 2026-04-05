@@ -1,19 +1,5 @@
 import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/react';
 
-// ── Icon + shape config per component type ────────────────────
-const ICONS: Record<string, string> = {
-  CLIENT:        '💻',
-  LOAD_BALANCER: '⚖️',
-  API_GATEWAY:   '🔀',
-  SERVICE:       '⚙️',
-  DATABASE:      '🗄️',
-  CACHE:         '⚡',
-  MESSAGE_QUEUE: '📨',
-  CDN:           '🌐',
-  STORAGE:       '💾',
-  CUSTOM:        '📦',
-};
-
 // Types that render as a 3-part cylinder
 const CYLINDER_TYPES = new Set(['DATABASE', 'STORAGE']);
 
@@ -84,15 +70,13 @@ export function SystemComponentNode({ data, selected }: NodeProps) {
   const technology   = (data.technology    as string) ?? '';
   const description  = (data.description   as string) ?? '';
 
-  const icon         = ICONS[componentType] ?? '📦';
   const BR           = BORDER_RADIUS[componentType] ?? '8px';
   const isCylinder   = CYLINDER_TYPES.has(componentType);
 
   // ── Content (shared) ─────────────────────────────────────
   const content = (
     <>
-      <div style={{ fontSize: '18px', lineHeight: 1.2 }}>{icon}</div>
-      <div className="text-sm font-semibold text-white leading-tight mt-0.5">{label}</div>
+      <div className="text-sm font-semibold text-white leading-tight">{label}</div>
       {technology && (
         <div
           className="text-xs mt-1 px-1.5 py-0.5 rounded bg-black/30 text-gray-300 truncate max-w-full"

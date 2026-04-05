@@ -15,10 +15,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-sdp_local_pass}
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      AI_PROVIDER: gemini
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      CLAUDE_API_KEY: ${CLAUDE_API_KEY:-}
-      AI_GEMINI_MODEL: gemini-2.0-flash
+      AI_PROVIDER: ollama
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:1b}
     depends_on:
@@ -163,39 +160,42 @@ services:
         apk add --no-cache curl jq > /dev/null 2>&1
 
         echo "Querying Piston package registry..."
-        PACKAGES=$(curl -sf http://piston:2000/api/v2/packages)
-        COUNT=$(echo "$PACKAGES" | jq length 2>/dev/null || echo 0)
-        echo "Found $COUNT packages in registry"
-
-        if [ "$COUNT" = "0" ]; then
-          echo "ERROR: Piston registry returned no packages. Check piston container internet access."
+        PKGS=$$(curl -sf http://piston:2000/api/v2/packages)
+        if [ -z "$$PKGS" ]; then
+          echo "ERROR: Piston returned empty response. Check internet access."
+          exit 1
+        fi
+        CNT=$$(echo "$$PKGS" | jq length 2>/dev/null || echo 0)
+        echo "Found $$CNT packages in registry"
+        if [ "$$CNT" = "0" ]; then
+          echo "ERROR: No packages found in registry."
           exit 1
         fi
 
-        install_lang() {
-          LANG=$1
-          VERSION=$(echo "$PACKAGES" | jq -r "[.[] | select(.language == \"$LANG\")] | .[0] | .language_version // empty")
-          if [ -z "$VERSION" ]; then
-            echo "SKIP: '$LANG' not found in registry"
-            return
+        install_pkg() {
+          NAME="$$1"
+          VER=$$(echo "$$PKGS" | jq -r --arg n "$$NAME" '[.[] | select(.language == $$n)] | .[0] | .language_version // empty')
+          if [ -z "$$VER" ]; then
+            echo "SKIP: '$$NAME' not found in registry"
+            return 1
           fi
-          echo "Installing $LANG $VERSION ..."
-          RESULT=$(curl -sS -X POST http://piston:2000/api/v2/packages \
+          echo "Installing $$NAME@$$VER ..."
+          RES=$$(curl -sS -m 300 -X POST http://piston:2000/api/v2/packages \
             -H 'Content-Type: application/json' \
-            -d "{\"language\":\"$LANG\",\"version\":\"$VERSION\"}" 2>&1)
-          echo "  -> $RESULT"
+            -d '{"language":"'"$$NAME"'","version":"'"$$VER"'"}' 2>&1)
+          echo "  -> $$RES"
+          return 0
         }
 
-        install_lang python
-        install_lang javascript
-        install_lang typescript
-        install_lang java
-        install_lang "c++"
-        install_lang go
-        install_lang mono
+        install_pkg python
+        install_pkg javascript || install_pkg node
+        install_pkg typescript
+        install_pkg java
+        install_pkg go
+        install_pkg mono
 
         echo "Piston runtime installation complete."
-        echo "Installed runtimes: $(curl -sf http://piston:2000/api/v2/runtimes | jq -r '[.[].language] | join(\", \")')"
+        echo "Installed: $$(curl -sf http://piston:2000/api/v2/runtimes | jq -r '[.[].language] | join(", ")')"
     networks:
       - sdp-network
 

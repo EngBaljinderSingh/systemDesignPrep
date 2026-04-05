@@ -19,10 +19,21 @@ import '@xyflow/react/dist/style.css';
 
 import type { ComponentType } from '../types/interview';
 import { SystemComponentNode } from './SystemComponentNode';
+import { FlowShapeNode, type FlowShapeType } from './FlowShapeNode';
 
 const nodeTypes: NodeTypes = {
   systemComponent: SystemComponentNode,
+  flowShape: FlowShapeNode,
 };
+
+const FLOW_SHAPE_PALETTE: { type: FlowShapeType; label: string; color: string }[] = [
+  { type: 'PROCESS',    label: 'Process',      color: '#60a5fa' },
+  { type: 'DECISION',   label: 'Decision',     color: '#fbbf24' },
+  { type: 'TERMINAL',   label: 'Start / End',  color: '#34d399' },
+  { type: 'IO',         label: 'Input/Output', color: '#a78bfa' },
+  { type: 'SUBPROCESS', label: 'Sub-Process',  color: '#38bdf8' },
+  { type: 'NOTE',       label: 'Note',         color: '#9ca3af' },
+];
 
 const COMPONENT_PALETTE: { type: ComponentType; label: string; color: string }[] = [
   { type: 'CLIENT', label: 'Client', color: '#60a5fa' },
@@ -55,6 +66,20 @@ export default function DesignCanvas() {
       setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#6366f1' } } as Edge, eds));
     },
     [setEdges],
+  );
+
+  const addFlowShape = useCallback(
+    (shapeType: FlowShapeType, label: string, color: string) => {
+      const id = `flow-${shapeType.toLowerCase()}-${Date.now()}`;
+      const newNode: Node = {
+        id,
+        type: 'flowShape',
+        position: { x: 120 + Math.random() * 400, y: 100 + Math.random() * 280 },
+        data: { label, shapeType, color },
+      };
+      setNodes((nds) => [...nds, newNode]);
+    },
+    [setNodes],
   );
 
   const addComponent = useCallback(
@@ -133,19 +158,36 @@ export default function DesignCanvas() {
           <Controls className="!bg-surface-light !border-gray-700" />
 
           <Panel position="top-left">
-            <div className="bg-surface-light rounded-lg p-3 shadow-lg border border-gray-700">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Add Component</h3>
-              <div className="flex flex-wrap gap-1.5 max-w-xs">
-                {COMPONENT_PALETTE.map(({ type, label, color }) => (
-                  <button
-                    key={type}
-                    onClick={() => addComponent(type, label, color)}
-                    className="px-2 py-1 text-xs rounded font-medium text-white transition-transform hover:scale-105"
-                    style={{ backgroundColor: color + 'cc' }}
-                  >
-                    + {label}
-                  </button>
-                ))}
+            <div className="bg-surface-light rounded-lg p-3 shadow-lg border border-gray-700 space-y-3">
+              <div>
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">System Components</h3>
+                <div className="flex flex-wrap gap-1.5 max-w-xs">
+                  {COMPONENT_PALETTE.map(({ type, label, color }) => (
+                    <button
+                      key={type}
+                      onClick={() => addComponent(type, label, color)}
+                      className="px-2 py-1 text-xs rounded font-medium text-white transition-transform hover:scale-105"
+                      style={{ backgroundColor: color + 'cc' }}
+                    >
+                      + {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Workflow Shapes</h3>
+                <div className="flex flex-wrap gap-1.5 max-w-xs">
+                  {FLOW_SHAPE_PALETTE.map(({ type, label, color }) => (
+                    <button
+                      key={type}
+                      onClick={() => addFlowShape(type, label, color)}
+                      className="px-2 py-1 text-xs rounded font-medium text-white transition-transform hover:scale-105"
+                      style={{ backgroundColor: color + 'cc' }}
+                    >
+                      + {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </Panel>
