@@ -20,11 +20,23 @@ import '@xyflow/react/dist/style.css';
 import type { ComponentType } from '../types/interview';
 import { SystemComponentNode } from './SystemComponentNode';
 import { FlowShapeNode, type FlowShapeType } from './FlowShapeNode';
+import { GroupNode } from './GroupNode';
 
 const nodeTypes: NodeTypes = {
   systemComponent: SystemComponentNode,
   flowShape: FlowShapeNode,
+  group: GroupNode,
 };
+
+const GROUP_PALETTE: { type: string; label: string; color: string }[] = [
+  { type: 'VPC',        label: 'VPC / Network',      color: '#6366f1' },
+  { type: 'AZ',         label: 'Availability Zone',  color: '#f59e0b' },
+  { type: 'CLUSTER',    label: 'Service Cluster',    color: '#34d399' },
+  { type: 'DATA_TIER',  label: 'Data Tier',          color: '#f87171' },
+  { type: 'FRONTEND',   label: 'Frontend Tier',      color: '#60a5fa' },
+  { type: 'REGION',     label: 'Region',             color: '#a78bfa' },
+  { type: 'CUSTOM_GRP', label: 'Custom Group',       color: '#9ca3af' },
+];
 
 const FLOW_SHAPE_PALETTE: { type: FlowShapeType; label: string; color: string }[] = [
   { type: 'PROCESS',    label: 'Process',      color: '#60a5fa' },
@@ -60,6 +72,9 @@ export default function DesignCanvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [editingNode, setEditingNode] = useState<{ id: string; form: EditForm } | null>(null);
+  const [showComponents, setShowComponents] = useState(true);
+  const [showWorkflow, setShowWorkflow] = useState(true);
+  const [showGroups, setShowGroups] = useState(true);
 
   const onConnect: OnConnect = useCallback(
     (params) => {
@@ -130,6 +145,23 @@ export default function DesignCanvas() {
     [setNodes, setEdges, editingNode],
   );
 
+  const addGroup = useCallback(
+    (groupType: string, label: string, color: string) => {
+      const id = `group-${groupType.toLowerCase()}-${Date.now()}`;
+      const newNode: Node = {
+        id,
+        type: 'group',
+        position: { x: 80 + Math.random() * 200, y: 60 + Math.random() * 120 },
+        data: { label, groupType, color },
+        zIndex: -1,
+        style: { width: 340, height: 230 },
+      };
+      // Insert at front so group renders behind other nodes
+      setNodes((nds) => [newNode, ...nds]);
+    },
+    [setNodes],
+  );
+
   const clearCanvas = useCallback(() => {
     if (window.confirm('Clear the entire canvas?')) {
       setNodes([]);
@@ -158,37 +190,95 @@ export default function DesignCanvas() {
           <Controls className="!bg-surface-light !border-gray-700" />
 
           <Panel position="top-left">
-            <div className="bg-surface-light rounded-lg p-3 shadow-lg border border-gray-700 space-y-3">
+            <div className="bg-surface-light rounded-lg p-3 shadow-lg border border-gray-700 space-y-3 max-w-[280px]">
+
+              {/* ── System Components ── */}
               <div>
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">System Components</h3>
-                <div className="flex flex-wrap gap-1.5 max-w-xs">
-                  {COMPONENT_PALETTE.map(({ type, label, color }) => (
-                    <button
-                      key={type}
-                      onClick={() => addComponent(type, label, color)}
-                      className="px-2 py-1 text-xs rounded font-medium text-white transition-transform hover:scale-105"
-                      style={{ backgroundColor: color + 'cc' }}
-                    >
-                      + {label}
-                    </button>
-                  ))}
-                </div>
+                <button
+                  onClick={() => setShowComponents((v) => !v)}
+                  className="flex items-center justify-between w-full group mb-1"
+                >
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                    System Components
+                  </h3>
+                  <span className="text-gray-500 group-hover:text-gray-200 text-xs ml-2 leading-none">
+                    {showComponents ? '▲' : '▼'}
+                  </span>
+                </button>
+                {showComponents && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {COMPONENT_PALETTE.map(({ type, label, color }) => (
+                      <button
+                        key={type}
+                        onClick={() => addComponent(type, label, color)}
+                        className="px-2 py-1 text-xs rounded font-medium text-white transition-transform hover:scale-105"
+                        style={{ backgroundColor: color + 'cc' }}
+                      >
+                        + {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {/* ── Groups / Zones ── */}
               <div>
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Workflow Shapes</h3>
-                <div className="flex flex-wrap gap-1.5 max-w-xs">
-                  {FLOW_SHAPE_PALETTE.map(({ type, label, color }) => (
-                    <button
-                      key={type}
-                      onClick={() => addFlowShape(type, label, color)}
-                      className="px-2 py-1 text-xs rounded font-medium text-white transition-transform hover:scale-105"
-                      style={{ backgroundColor: color + 'cc' }}
-                    >
-                      + {label}
-                    </button>
-                  ))}
-                </div>
+                <button
+                  onClick={() => setShowGroups((v) => !v)}
+                  className="flex items-center justify-between w-full group mb-1"
+                >
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                    Groups / Zones
+                  </h3>
+                  <span className="text-gray-500 group-hover:text-gray-200 text-xs ml-2 leading-none">
+                    {showGroups ? '▲' : '▼'}
+                  </span>
+                </button>
+                {showGroups && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {GROUP_PALETTE.map(({ type, label, color }) => (
+                      <button
+                        key={type}
+                        onClick={() => addGroup(type, label, color)}
+                        className="px-2 py-1 text-xs rounded font-medium transition-transform hover:scale-105"
+                        style={{ color, backgroundColor: color + '22', border: `1px dashed ${color}88` }}
+                      >
+                        ⊞ {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {/* ── Workflow Shapes ── */}
+              <div>
+                <button
+                  onClick={() => setShowWorkflow((v) => !v)}
+                  className="flex items-center justify-between w-full group mb-1"
+                >
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                    Workflow Shapes
+                  </h3>
+                  <span className="text-gray-500 group-hover:text-gray-200 text-xs ml-2 leading-none">
+                    {showWorkflow ? '▲' : '▼'}
+                  </span>
+                </button>
+                {showWorkflow && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {FLOW_SHAPE_PALETTE.map(({ type, label, color }) => (
+                      <button
+                        key={type}
+                        onClick={() => addFlowShape(type, label, color)}
+                        className="px-2 py-1 text-xs rounded font-medium text-white transition-transform hover:scale-105"
+                        style={{ backgroundColor: color + 'cc' }}
+                      >
+                        + {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
             </div>
           </Panel>
 

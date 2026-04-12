@@ -6,6 +6,9 @@ import SystemDesignPatternsPage from './pages/SystemDesignPatternsPage';
 import ProblemsPage from './pages/ProblemsPage';
 import CanvasPage from './pages/CanvasPage';
 import CodeEditorPage from './pages/CodeEditorPage';
+import InterviewQuestionsPage from './pages/InterviewQuestionsPage';
+import HackerRankPage from './pages/HackerRankPage';
+import MockInterviewPage from './pages/MockInterviewPage';
 
 export default function App() {
   return (
@@ -20,6 +23,9 @@ export default function App() {
             <Route path="/problems" element={<ProblemsPage />} />
             <Route path="/code" element={<CodeEditorPage />} />
             <Route path="/canvas" element={<CanvasPage />} />
+            <Route path="/interview-questions" element={<InterviewQuestionsPage />} />
+            <Route path="/mock-interview" element={<MockInterviewPage />} />
+            <Route path="/hackerrank" element={<HackerRankPage />} />
           </Routes>
         </main>
       </div>
