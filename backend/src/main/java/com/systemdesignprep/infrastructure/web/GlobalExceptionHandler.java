@@ -7,9 +7,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.List;
 
@@ -32,6 +34,29 @@ public class GlobalExceptionHandler {
         log.warn("Illegal state: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ApiErrorResponse.of(409, "Conflict", ex.getMessage(), request.getRequestURI()));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiErrorResponse> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+        String msg = String.format("Invalid value '%s' for parameter '%s': expected %s",
+                ex.getValue(), ex.getName(),
+                ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown type");
+        log.warn("Type mismatch on {}: {}", request.getRequestURI(), msg);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiErrorResponse.of(400, "Bad Request", msg, request.getRequestURI()));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiErrorResponse> handleUnreadable(
+            HttpMessageNotReadableException ex, HttpServletRequest request) {
+        String raw = ex.getMessage() != null ? ex.getMessage() : "Request body is invalid or malformed";
+        // Trim verbose Jackson stacktrace suffix — keep just the first meaningful sentence
+        int cut = raw.indexOf("; nested exception");
+        String msg = cut > 0 ? raw.substring(0, cut) : raw;
+        log.warn("Unreadable request body on {}: {}", request.getRequestURI(), msg);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiErrorResponse.of(400, "Bad Request", msg, request.getRequestURI()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Aggregate Root — represents a single mock interview session.
@@ -55,19 +57,28 @@ public class InterviewSession {
 
     /**
      * Reconstitution constructor for the persistence adapter.
+     * This method is used by Jackson to deserialize the object from JSON/Redis cache.
      */
-    public static InterviewSession reconstitute(UUID id, UUID userId, String problemTitle,
-                                                 String problemDescription, DifficultyLevel difficulty,
-                                                 InterviewPhase phase, CanvasState canvasState,
-                                                 List<ConversationTurn> history, List<Feedback> feedback,
-                                                 Instant createdAt, Instant updatedAt) {
+    @JsonCreator
+    public static InterviewSession reconstitute(
+            @JsonProperty("id") UUID id,
+            @JsonProperty("userId") UUID userId,
+            @JsonProperty("problemTitle") String problemTitle,
+            @JsonProperty("problemDescription") String problemDescription,
+            @JsonProperty("difficulty") DifficultyLevel difficulty,
+            @JsonProperty("currentPhase") InterviewPhase phase,
+            @JsonProperty("canvasState") CanvasState canvasState,
+            @JsonProperty("conversationHistory") List<ConversationTurn> history,
+            @JsonProperty("feedbackItems") List<Feedback> feedback,
+            @JsonProperty("createdAt") Instant createdAt,
+            @JsonProperty("updatedAt") Instant updatedAt) {
         InterviewSession session = new InterviewSession(new Builder()
                 .id(id).userId(userId).problemTitle(problemTitle)
                 .problemDescription(problemDescription).difficulty(difficulty));
         session.currentPhase = phase;
         session.canvasState = canvasState;
-        session.conversationHistory.addAll(history);
-        session.feedbackItems.addAll(feedback);
+        if (history != null) session.conversationHistory.addAll(history);
+        if (feedback != null) session.feedbackItems.addAll(feedback);
         session.createdAt = createdAt;
         session.updatedAt = updatedAt;
         return session;

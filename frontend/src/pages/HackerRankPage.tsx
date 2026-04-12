@@ -227,7 +227,7 @@ function ProblemDetail({ problem }: { problem: HRProblem }) {
 }
 
 export default function HackerRankPage() {
-  const [selected, setSelected] = useState<HRProblem | null>(null);
+  const [selected, setSelected] = useState<HRProblem | null>(hackerrankProblems[0] ?? null);
   const [diffFilter, setDiffFilter] = useState<'All' | 'Easy' | 'Medium' | 'Hard'>('All');
   const [search, setSearch] = useState('');
 
