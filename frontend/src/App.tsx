@@ -3,6 +3,8 @@ import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import AlgorithmPatternsPage from './pages/AlgorithmPatternsPage';
 import SystemDesignPatternsPage from './pages/SystemDesignPatternsPage';
+import DesignPatternsPage from './pages/DesignPatternsPage';
+import LearningHubPage from './pages/LearningHubPage';
 import ProblemsPage from './pages/ProblemsPage';
 import CanvasPage from './pages/CanvasPage';
 import CodeEditorPage from './pages/CodeEditorPage';
@@ -20,6 +22,8 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/algorithms" element={<AlgorithmPatternsPage />} />
             <Route path="/system-design" element={<SystemDesignPatternsPage />} />
+            <Route path="/design-patterns" element={<DesignPatternsPage />} />
+            <Route path="/learning" element={<LearningHubPage />} />
             <Route path="/problems" element={<ProblemsPage />} />
             <Route path="/code" element={<CodeEditorPage />} />
             <Route path="/canvas" element={<CanvasPage />} />
