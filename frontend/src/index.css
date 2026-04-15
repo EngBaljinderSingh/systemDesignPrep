@@ -2,10 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Theme CSS Variables ──────────────────────────────────── */
+:root {
+  /* Default: Dark theme */
+  --color-surface: #1e1e2e;
+  --color-surface-light: #2a2a3e;
+}
+
+html.light {
+  /* Light theme overrides */
+  --color-surface: #f8fafc;
+  --color-surface-light: #f1f5f9;
+  color-scheme: light;
+}
+
 body {
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
+
+/* ── Light Mode Global Overrides ─────────────────────────── */
+html.light body {
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+html.light .text-white { color: #0f172a !important; }
+html.light .text-gray-100 { color: #1e293b !important; }
+html.light .text-gray-200 { color: #334155 !important; }
+html.light .text-gray-300 { color: #475569 !important; }
+html.light .text-gray-400 { color: #64748b !important; }
+html.light .text-gray-500 { color: #94a3b8 !important; }
+
+html.light .bg-gray-950 { background-color: #f8fafc !important; }
+html.light .bg-gray-900 { background-color: #f1f5f9 !important; }
+html.light .bg-gray-800 { background-color: #e2e8f0 !important; }
+html.light .bg-gray-700 { background-color: #cbd5e1 !important; }
+
+html.light .border-gray-800 { border-color: #e2e8f0 !important; }
+html.light .border-gray-700 { border-color: #cbd5e1 !important; }
+html.light .border-gray-600 { border-color: #94a3b8 !important; }
+
+html.light .bg-white\/5 { background-color: rgba(0, 0, 0, 0.04) !important; }
+html.light .hover\:bg-white\/5:hover { background-color: rgba(0, 0, 0, 0.04) !important; }
+html.light .hover\:bg-white\/10:hover { background-color: rgba(0, 0, 0, 0.06) !important; }
+html.light .bg-black\/20 { background-color: rgba(0, 0, 0, 0.06) !important; }
+html.light .bg-black\/40 { background-color: rgba(0, 0, 0, 0.10) !important; }
 
 /* ── React Flow dark-theme overrides ───────────────────────── */
 .react-flow__controls {
@@ -39,5 +81,29 @@ body {
 .react-flow__minimap {
   background: #1e1e2e !important;
   border: 1px solid #374151;
+}
+
+/* ── React Flow light-theme overrides ──────────────────────── */
+html.light .react-flow__controls {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+}
+
+html.light .react-flow__controls-button {
+  background: #f1f5f9 !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+}
+
+html.light .react-flow__controls-button:hover {
+  background: #e2e8f0 !important;
+}
+
+html.light .react-flow__controls-button svg {
+  fill: #334155 !important;
+}
+
+html.light .react-flow__minimap {
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1;
 }
 

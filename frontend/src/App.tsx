@@ -11,11 +11,13 @@ import CodeEditorPage from './pages/CodeEditorPage';
 import InterviewQuestionsPage from './pages/InterviewQuestionsPage';
 import HackerRankPage from './pages/HackerRankPage';
 import MockInterviewPage from './pages/MockInterviewPage';
+import { ThemeProvider, useTheme } from './ThemeContext';
 
-export default function App() {
+function AppContent() {
+  const { theme } = useTheme();
   return (
     <BrowserRouter>
-      <div className="h-screen flex flex-col bg-surface text-white">
+      <div className={`h-screen flex flex-col bg-surface ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
         <Navbar />
         <main className="flex-1 overflow-auto">
           <Routes>
@@ -34,5 +36,13 @@ export default function App() {
         </main>
       </div>
     </BrowserRouter>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }

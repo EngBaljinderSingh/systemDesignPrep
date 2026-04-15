@@ -138,11 +138,11 @@ services:
     ports:
       - "2000:2000"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:2000/api/v2/runtimes"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:2000/api/v2/runtimes', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
       interval: 15s
       timeout: 10s
-      retries: 15
-      start_period: 60s
+      retries: 10
+      start_period: 30s
     networks:
       - sdp-network
 
