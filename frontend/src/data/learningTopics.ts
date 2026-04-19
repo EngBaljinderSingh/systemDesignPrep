@@ -306,6 +306,55 @@ try (ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()) {
           },
         ],
       },
+      {
+        id: 'java-jvm',
+        name: 'JVM & Garbage Collection',
+        level: 'Intermediate',
+        description: 'How the JVM manages memory, the generational heap model, GC algorithms, and how to tune them.',
+        concepts: [
+          {
+            id: 'java-gc',
+            name: 'Garbage Collector',
+            summary: `The JVM automatically reclaims heap memory for objects that are no longer reachable — no manual free(). The heap is split into generations:\n\n• **Young Gen (Eden + S0/S1)** — short-lived objects. Minor GC runs frequently and is fast.\n• **Old Gen (Tenured)** — objects that survived several Minor GCs get promoted here. Major/Full GC is slower.\n• **Metaspace** (Java 8+) — class metadata; lives off-heap.\n\nGC algorithms:\n| Collector | Flag | Best for |\n|-----------|------|----------|\n| Serial | -XX:+UseSerialGC | single-core, small heaps |\n| Parallel | -XX:+UseParallelGC | throughput-first batch jobs |\n| G1 (default Java 9+) | -XX:+UseG1GC | balanced latency & throughput |\n| ZGC | -XX:+UseZGC | sub-millisecond pauses, Java 15+ |\n| Shenandoah | -XX:+UseShenandoahGC | ultra-low pause, Red Hat |\n\nCommon STW (Stop-The-World) — all GCs pause app threads briefly during certain phases.`,
+            codeExample: `// ── Heap flags ──────────────────────────────────
+// -Xms512m   initial heap size
+// -Xmx2g     max heap size
+// -XX:+UseG1GC                  use G1 (default Java 9+)
+// -XX:MaxGCPauseMillis=200      G1 pause target
+// -XX:+UseZGC                   ZGC — sub-ms pauses (Java 15+)
+
+// ── Generational flow ────────────────────────────
+// new Object() → Eden
+//   ↓ Minor GC (survives)
+// Survivor S0/S1 (age++)
+//   ↓ age ≥ 15 (default)
+// Old Gen (Tenured)
+//   ↓ Old Gen full → Full GC (slow!)
+
+// ── Avoid memory leaks ───────────────────────────
+// 1. Static collections holding references
+static Map<String, byte[]> cache = new HashMap<>(); // ⚠ grows forever
+
+// 2. Use WeakReference for caches — GC can collect the value
+Map<String, WeakReference<ExpensiveObject>> safeCache = new WeakHashMap<>();
+
+// 3. Always close resources (try-with-resources)
+try (InputStream in = new FileInputStream("file.txt")) {
+  // in is closed automatically — no heap/native leak
+}
+
+// ── Read GC logs (Java 11+) ──────────────────────
+// -Xlog:gc*:file=gc.log:time,uptime:filecount=5,filesize=10m`,
+            funFact: '🗑️ The G1 collector (Garbage First) divides the heap into equal-sized regions (~2 MB each) and always collects the regions with the most garbage first — that\'s where the name comes from!',
+            quiz: {
+              question: 'An object created with `new` first lands in which heap region?',
+              options: ['Old Gen', 'Metaspace', 'Eden (Young Gen)', 'Survivor S1'],
+              answer: 2,
+              explanation: 'All newly allocated objects start in Eden. If they survive a Minor GC they are copied to a Survivor space, and after enough GC cycles they are promoted to Old Gen.',
+            },
+          },
+        ],
+      },
     ],
   },
 
@@ -3671,6 +3720,396 @@ public Order getOrder(@PathVariable Long id,
     tagline: 'Build AI apps and agents with LLMs',
     category: 'Framework',
     subtopics: [
+      // ── Plain English Glossary ─────────────────────────────────────────
+      {
+        id: 'lc-glossary',
+        name: '🗺️ Concept Glossary — Plain English',
+        level: 'Beginner',
+        description: 'LangChain is like building with Lego — it gives you ready-made pieces (prompts, models, parsers, memory, tools) that snap together into a pipeline. LangGraph is like designing a flowchart that actually runs itself — branches, loops, multiple agents, human approvals. Chain = recipe (same steps, in order). Agent = a chef who improvises. LangGraph = a full kitchen with multiple chefs, stations, and a head chef who routes work.',
+        concepts: [
+          {
+            id: 'lc-g-llm',
+            name: '🧠 LLM / ChatModel — The Brain',
+            summary: 'Like hiring a smart consultant who answers your questions. This is the actual AI model you\'re talking to — like Claude or GPT-4. LangChain just gives you a clean, standard way to talk to ANY of them. You don\'t care how the brain works inside; you send it a question and it gives you an answer. You can swap one model for another without changing anything else in your code.',
+            codeExample: `from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
+
+# These two lines are YOUR ONLY CHANGE to swap models — everything else stays the same
+llm = ChatOpenAI(model="gpt-4o-mini")
+# llm = ChatAnthropic(model="claude-3-haiku-20240307")  ← swap with one line!
+
+response = llm.invoke("What is a closure in JavaScript?")
+print(response.content)`,
+            funFact: '🔄 This "swap any model" superpower is called the "provider abstraction layer". The same code runs against OpenAI, Anthropic, Google Gemini, or your local Ollama model — you just change one line!',
+          },
+          {
+            id: 'lc-g-prompt',
+            name: '📝 PromptTemplate — The Fill-in-the-Blank Form',
+            summary: 'Like a job application template where you just fill your name. Instead of writing a prompt string from scratch every time, you define it ONCE with placeholders like {topic} or {language}, then fill them in at runtime. This keeps prompts reusable, testable, and clean — no more messy string concatenation.',
+            codeExample: `from langchain_core.prompts import ChatPromptTemplate
+
+# Define ONCE with placeholders (like a form)
+template = ChatPromptTemplate.from_messages([
+    ("system", "You are a {persona}."),
+    ("human",  "Explain {topic} to a {audience}."),
+])
+
+# Fill the form — different every time!
+prompt_a = template.format_messages(persona="teacher",  topic="recursion",    audience="beginner")
+prompt_b = template.format_messages(persona="pirate",   topic="Docker",       audience="child")
+prompt_c = template.format_messages(persona="comedian", topic="Kubernetes",   audience="CEO")`,
+            funFact: '🎯 A well-crafted prompt template is 80% of the work in most LLM apps. "Prompt engineering" (writing good templates) is a real discipline — small wording changes can improve accuracy by 20-40%!',
+          },
+          {
+            id: 'lc-g-chain',
+            name: '🏭 Chain — The Assembly Line',
+            summary: 'An assembly line where each worker does their part and passes it to the next. Step 1 formats the prompt → Step 2 sends it to the AI → Step 3 parses the output. The modern LCEL syntax uses the | pipe operator — exactly like Unix pipes. Read left to right: "fill the template, THEN ask the AI, THEN extract the text string".',
+            codeExample: `from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+
+# Each | means "pass output to the next step"
+chain = (
+    ChatPromptTemplate.from_template("Explain {topic} simply.")  # Step 1: fill form
+    | ChatOpenAI(model="gpt-4o-mini")                            # Step 2: ask AI
+    | StrOutputParser()                                           # Step 3: extract text
+)
+
+answer = chain.invoke({"topic": "Docker"})
+# That's it. Three workers, one assembly line. ✅`,
+            funFact: '🔗 The | pipe syntax was inspired by Unix: "cat file | grep error | wc -l" chains three Unix programs. LCEL brings that same elegance to AI pipelines!',
+          },
+          {
+            id: 'lc-g-parser',
+            name: '🔄 Output Parser — The Translator',
+            summary: 'A translator who converts the AI\'s raw answer into a format your code can use. By default an LLM returns a big message object. An output parser extracts what you actually need: the plain string, a JSON object, a Python list, a Pydantic model, etc. Without a parser you have to dig through the response object yourself every time.',
+            codeExample: `from langchain_openai import ChatOpenAI
+from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel
+
+llm = ChatOpenAI(model="gpt-4o-mini")
+
+# ── StrOutputParser — just give me the text ──────────────────────
+chain_text = ChatPromptTemplate.from_template("Name 3 benefits of {thing}.") | llm | StrOutputParser()
+print(chain_text.invoke({"thing": "TypeScript"}))  # → "1. Type safety  2. ..."
+
+# ── JsonOutputParser — give me structured data ───────────────────
+class Benefit(BaseModel):
+    benefit: str
+    reason:  str
+
+chain_json = (
+    ChatPromptTemplate.from_template("List ONE key benefit of {thing} as JSON: {format_instructions}")
+    | llm
+    | JsonOutputParser()
+)
+data = chain_json.invoke({"thing": "Docker"})
+print(data)  # → {"benefit": "Consistency", "reason": "Runs the same everywhere"}`,
+            funFact: '📦 Pydantic output parsers are like TypeScript interfaces — they validate the AI\'s JSON output against a schema and throw an error if the AI made up unexpected fields. Super useful for production!',
+          },
+          {
+            id: 'lc-g-memory',
+            name: '📓 Memory — The AI\'s Notebook',
+            summary: 'Without memory, every message is a fresh start — like talking to someone with amnesia. You say "my name is Alice" and 5 messages later they\'ve forgotten completely. Memory makes the AI carry a notebook of the conversation. Each time it answers, it reads the notebook first. Different types trade off completeness vs. cost: remember everything vs. summarise vs. keep only the last N turns.',
+            codeExample: `# Simple analogy in code
+conversation_history = []  # ← this IS the "notebook"
+
+def chat(user_message):
+    conversation_history.append({"role": "user", "content": user_message})
+    response = llm.invoke(conversation_history)   # reads the FULL notebook each time
+    conversation_history.append({"role": "assistant", "content": response.content})
+    return response.content
+
+chat("My name is Alice")
+chat("I love Python")
+print(chat("What is my name?"))  # → "Your name is Alice!" — it remembered! ✅
+
+# Problem: if conversation is 200 turns, you send ALL 200 turns every request = expensive!
+# Solutions:
+# ConversationBufferWindowMemory(k=10)  → keep only last 10 turns
+# ConversationSummaryMemory             → compress old turns into a short summary`,
+            funFact: '🧠 Every LLM has a "context window" (max tokens it can read at once). GPT-4 handles ~128k tokens. Sending a massive history hits this limit AND costs money per token — so smart memory management is critical in production!',
+          },
+          {
+            id: 'lc-g-tools',
+            name: '🔧 Tools — The AI\'s Swiss Army Knife',
+            summary: 'Special abilities the AI can pull out when needed — like a Swiss Army knife the consultant can choose from. A tool is just a Python function you describe in plain English. The AI reads the description and decides WHEN to use it. This is how AI can Google things, run SQL, call your API, or send emails — the AI picks the right tool for the job without you hardcoding when to use each one.',
+            codeExample: `from langchain_core.tools import tool
+
+# The DOCSTRING is what the AI reads to decide when to use this tool!
+@tool
+def search_web(query: str) -> str:
+    """Search the internet for up-to-date information about any topic."""
+    return f"[Results: ...]"   # real: call DuckDuckGo or Tavily
+
+@tool
+def get_weather(city: str) -> str:
+    """Get the current weather for a given city name."""
+    return f"{city}: 18°C, cloudy"
+
+@tool
+def send_email(to: str, subject: str, body: str) -> str:
+    """Send an email to a recipient. Use this when the user wants to email someone."""
+    return f"Email sent to {to}!"
+
+# Give the AI its toolbox
+llm_with_tools = llm.bind_tools([search_web, get_weather, send_email])
+# Now the AI autonomously decides:  "User asked for weather → call get_weather()"`,
+            funFact: '🤖 When an AI "calls a tool", it doesn\'t EXECUTE the code — it just says "I want to call THIS function with THESE arguments". Your code runs it and gives the result back. The AI never directly touches your database!',
+          },
+          {
+            id: 'lc-g-agent',
+            name: '👷 Agent — The Smart Decision Maker',
+            summary: 'A smart employee who decides ON THEIR OWN which tools to use and in what order to get the job done. Unlike a Chain (fixed steps), an Agent THINKS first: "What do I need? What tool gives me that? OK ran it, now what?" It loops — think, act, observe result, think again — until it has a final answer. The LLM IS the decision maker; the tools are its hands.',
+            codeExample: `# Chain (fixed recipe):        prompt → llm → parser     (always the same 3 steps)
+# Agent (smart decision maker): llm decides WHICH tools, in WHAT order, HOW MANY times
+
+# Agent loop in plain English:
+# 1. User: "What's 15% of Tokyo's population and is it currently raining there?"
+# 2. Agent thinks: "I need Tokyo's population AND weather. I have those tools."
+# 3. Agent calls: calculator("13_960_000 * 0.15")  → "2,094,000"
+# 4. Agent calls: get_weather("Tokyo")              → "22°C, clear"
+# 5. Agent thinks: "I have all the info now."
+# 6. Agent answers: "15% of Tokyo = 2,094,000 people. It's 22°C and clear there."
+# The agent decided the ORDER and HOW MANY tool calls — you didn't tell it to!
+
+from langchain.agents import create_react_agent, AgentExecutor
+from langchain import hub
+
+agent   = create_react_agent(llm, [search_web, get_weather, calculator], hub.pull("hwchase17/react"))
+executor = AgentExecutor(agent=agent, tools=[search_web, get_weather, calculator], verbose=True)
+result  = executor.invoke({"input": "What is 15% of Tokyo's population?"})`,
+            funFact: '🔄 Agents can call tools 0 times (if the answer is in the LLM\'s knowledge), 1 time, or many times. They also self-reflect — if a tool returns an error, a good agent retries with a different approach automatically!',
+            quiz: {
+              question: 'What is the key difference between a Chain and an Agent?',
+              options: [
+                'Chains use Python, Agents use JavaScript',
+                'A chain runs fixed steps in a fixed order; an agent decides which tools to use and how many times based on the situation',
+                'Agents are always better and should replace chains everywhere',
+                'Chains use memory; agents do not',
+              ],
+              answer: 1,
+              explanation: 'A chain is a recipe: always the same steps. An agent is a chef who improvises: it reads the situation and decides the best path. Chains are predictable and fast; agents are flexible and powerful but slower and costlier.',
+            },
+          },
+
+          // ── LangGraph Concepts ───────────────────────────────────────────────
+          {
+            id: 'lc-g-stategraph',
+            name: '🗺️ StateGraph — The Flowchart That Runs',
+            summary: 'Like a board game — each square is a step, and the dice (conditions) decide where you go next. You draw a graph with nodes (steps) and edges (paths). Unlike a chain that always goes A → B → C, a StateGraph can go A → B → A (loop back), or A → B if X else C (branch), or A → B and C in parallel (split). You build the map, then call .compile() and it becomes a runnable app.',
+            codeExample: `from langgraph.graph import StateGraph, END
+from typing import TypedDict
+
+class MyState(TypedDict):
+    count: int
+    done:  bool
+
+def step_a(state): return {"count": state["count"] + 1}
+def step_b(state): return {"done": state["count"] >= 3}  # stop after 3 loops
+def should_continue(state): return END if state["done"] else "step_a"  # loop or stop
+
+graph = StateGraph(MyState)
+graph.add_node("step_a", step_a)
+graph.add_node("step_b", step_b)
+graph.set_entry_point("step_a")
+graph.add_edge("step_a", "step_b")
+graph.add_conditional_edges("step_b", should_continue)  # ← this is the dice roll
+
+app = graph.compile()
+result = app.invoke({"count": 0, "done": False})
+# Runs: A → B → A → B → A → B → END  (looped 3 times!)`,
+            funFact: '🎮 The "conditional edge" is the key innovation: it\'s a function that returns the NAME of the next node. Return "retry" and it jumps back to retry. Return END and it stops. This single feature enables loops, branches, and retries that chains can\'t do.',
+          },
+          {
+            id: 'lc-g-state',
+            name: '🗒️ State — The Shared Whiteboard',
+            summary: 'A shared whiteboard visible to everyone in the room. Any node (step) can READ from it and WRITE new values to it. When step A finishes, it puts its results on the whiteboard. When step B starts, it reads from the whiteboard to know what step A found. The state is a TypedDict (typed Python dict) — it\'s the single source of truth that flows through the entire graph.',
+            codeExample: `from typing import TypedDict, List
+
+# The whiteboard — every node reads/writes this
+class BlogState(TypedDict):
+    topic:    str        # ← researcher reads this
+    outline:  str        # ← researcher writes, writer reads
+    draft:    str        # ← writer writes, editor reads
+    feedback: str        # ← editor writes, writer may re-read (loop!)
+    approved: bool       # ← editor writes; True = done, False = loop back
+
+# Each node just takes state and returns ONLY what it changed
+def researcher(state: BlogState) -> dict:
+    outline = llm.invoke(f"Create outline for: {state['topic']}").content
+    return {"outline": outline}   # ← updates ONLY outline on the whiteboard
+
+def writer(state: BlogState) -> dict:
+    draft = llm.invoke(f"Write blog from outline:\\n{state['outline']}").content
+    return {"draft": draft}       # ← updates ONLY draft
+
+def editor(state: BlogState) -> dict:
+    # Is the draft good enough? Write feedback and set approved flag
+    ok = len(state["draft"]) > 500
+    return {"feedback": "Too short!" if not ok else "Approved!", "approved": ok}`,
+            funFact: '📋 State in LangGraph is immutable per step — each node returns a PATCH (only what changed), not the full state. LangGraph merges it. This means you can safely have multiple nodes run in parallel without race conditions!',
+          },
+          {
+            id: 'lc-g-nodes',
+            name: '🏢 Nodes — The Departments',
+            summary: 'Departments in an office. Each does one specific job and passes the work along. A node is just a Python function that takes the current state and returns a dict of what changed. "Researcher" finds info, "Writer" writes the draft, "Editor" reviews it. Each node is focused, testable, and reusable — you can swap out the "Writer" node without touching anything else.',
+            codeExample: `# ── Good node design: single responsibility ──────────────────────
+# Each node does ONE thing well
+
+def research_node(state):
+    """Only researches. Knows nothing about writing or editing."""
+    results = web_search(state["query"])
+    return {"search_results": results}
+
+def write_node(state):
+    """Only writes. Knows nothing about researching or editing."""
+    draft = llm.invoke(f"Write about: {state['search_results']}").content
+    return {"draft": draft}
+
+def edit_node(state):
+    """Only edits. Returns improved draft + quality score."""
+    improved = llm.invoke(f"Edit and improve: {state['draft']}").content
+    score    = len(improved.split()) // 100  # rough quality proxy
+    return {"draft": improved, "quality_score": score}
+
+# ── Nodes can also call LLM agents, not just simple functions ──────
+def ai_researcher_node(state):
+    """An entire agent as a single node in a bigger graph!"""
+    agent_result = research_agent.invoke({"input": state["query"]})
+    return {"search_results": agent_result["output"]}`,
+            funFact: '🧩 You can nest a full LangChain agent INSIDE a LangGraph node. This is the "agent as a node" pattern — your graph might have a ReAct agent as the "researcher" node and another as the "coder" node, with LangGraph managing the flow between them.',
+          },
+          {
+            id: 'lc-g-edges',
+            name: '🛣️ Edges — The Roads Between Departments',
+            summary: 'Roads between departments. Some roads are one-way (always go there next); some have traffic lights (conditional — decide which road to take based on current state). A regular edge always goes A → B. A conditional edge runs a function and returns the name of the next node. This is the branching power: "if quality is good → finish, else → rewrite".',
+            codeExample: `from langgraph.graph import StateGraph, END
+
+graph = StateGraph(MyState)
+graph.add_node("write",  write_node)
+graph.add_node("review", review_node)
+graph.add_node("revise", revise_node)
+
+# ── Regular edge: always go here next (no choice) ─────────────────
+graph.add_edge("write", "review")   # after writing, ALWAYS review
+
+# ── Conditional edge: traffic light — pick the road based on state ─
+def routing_function(state) -> str:
+    """Returns the NAME of the next node to run."""
+    if state["quality_score"] >= 8:
+        return END           # 🟢 Good enough — finish!
+    elif state["revisions"] >= 3:
+        return END           # 🔴 Too many attempts — give up
+    else:
+        return "revise"      # 🟡 Not good enough yet — loop back
+
+graph.add_conditional_edges(
+    "review",           # after this node...
+    routing_function,   # ...call this function to decide where to go
+    {
+        "revise": "revise",  # if returns "revise", go to revise node
+        END:      END,       # if returns END, stop the graph
+    }
+)`,
+            funFact: '🔀 Conditional edges make LangGraph Turing-complete — any algorithm that can be expressed as a flowchart can be expressed as a LangGraph. This includes loops, recursion, parallel branches, and early exits.',
+          },
+          {
+            id: 'lc-g-compile',
+            name: '🏗️ Compile — Locking the Blueprint',
+            summary: 'Locking in the blueprint before construction starts. Once you call .compile(), the graph is validated (are all nodes connected? no typos in node names?) and turned into a runnable app. You can\'t rearrange nodes after compiling — just like you can\'t move walls after a building is built. But you CAN add a checkpointer at compile time to enable pausing, resuming, and human approval.',
+            codeExample: `from langgraph.graph import StateGraph, END
+from langgraph.checkpoint.memory import MemorySaver  # in-memory persistence
+
+graph = StateGraph(MyState)
+# ... add nodes and edges ...
+
+# ── Basic compile: just makes it runnable ─────────────────────────
+app = graph.compile()
+result = app.invoke({"input": "Hello"})
+
+# ── Compile WITH checkpointer: enables pause/resume & human-in-loop
+checkpointer = MemorySaver()   # or SqliteSaver, PostgresSaver for prod
+app_with_memory = graph.compile(checkpointer=checkpointer)
+
+# Now you can PAUSE mid-graph (e.g., waiting for human approval)
+# and RESUME later with the exact same state
+config = {"configurable": {"thread_id": "session-42"}}
+app_with_memory.invoke({"input": "Start workflow"}, config=config)
+# Later... resume from where it paused:
+app_with_memory.invoke(None, config=config)  # continues from checkpoint`,
+            funFact: '💾 The checkpointer is what makes LangGraph different from a regular function. It saves the ENTIRE state after every node — so if your server crashes halfway through a 30-step workflow, you can resume from step 15, not restart from scratch!',
+          },
+
+          // ── Both LangChain & LangGraph ───────────────────────────────────────
+          {
+            id: 'lc-g-rag-summary',
+            name: '📚 RAG — The AI That Opens a Book First',
+            summary: 'An AI that can open a book before answering. Instead of relying only on what it learned during training (which has a knowledge cutoff and doesn\'t know YOUR data), it looks things up first. Step 1: load your documents. Step 2: chop them into chunks and convert to vectors. Step 3: when a question comes, find the most relevant chunks and paste them into the prompt. The AI now answers based on YOUR actual data.',
+            codeExample: `# RAG in 4 steps — works with LangChain chains AND LangGraph nodes
+
+# STEP 1: Load your data (PDF, website, database, etc.)
+from langchain_community.document_loaders import PyPDFLoader
+docs = PyPDFLoader("company_policy.pdf").load()
+
+# STEP 2: Chop into searchable chunks
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+chunks = RecursiveCharacterTextSplitter(chunk_size=1000).split_documents(docs)
+
+# STEP 3: Convert to vectors and store (do this ONCE, save to disk)
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
+vectorstore = Chroma.from_documents(chunks, OpenAIEmbeddings(), persist_directory="./db")
+
+# STEP 4: At query time — find relevant chunks, inject into prompt
+retriever = vectorstore.as_retriever(search_kwargs={"k": 3})  # top 3 chunks
+
+relevant_docs = retriever.invoke("What is the vacation policy?")
+# → [chunk about vacation, chunk about PTO, chunk about holidays]
+# These chunks get pasted into the LLM prompt → AI answers from YOUR document!`,
+            funFact: '📐 "Semantic search" (used in RAG) finds text by MEANING, not exact words. "Furry animal" will find documents about "dogs" even though "dog" wasn\'t in the query. It\'s powered by vector math — the dot product of two embedding vectors measures conceptual similarity.',
+          },
+          {
+            id: 'lc-g-hitl-summary',
+            name: '🙋 Human-in-the-Loop — The Approval Gate',
+            summary: 'A manager who must approve certain decisions before the AI continues. The AI pauses and waits. Picture an AI agent that is booking flights, sending emails, and charging credit cards — you want a human to confirm the $2,000 flight before the AI clicks "buy". LangGraph supports this natively: an interrupt() call pauses the graph, sends a notification, and waits for a human to resume it.',
+            codeExample: `from langgraph.graph import StateGraph, END
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.types import interrupt
+
+def ai_proposes_action(state):
+    action = llm.invoke(f"What should I do about: {state['task']}").content
+    return {"proposed_action": action}
+
+def human_approval(state):
+    # ← This PAUSES the graph and returns control to your application!
+    # Your app shows the proposed_action to a human and waits
+    human_decision = interrupt({
+        "message": "AI wants to: " + state["proposed_action"],
+        "options": ["approve", "reject"],
+    })
+    return {"approved": human_decision == "approve"}
+
+def execute_action(state):
+    if state["approved"]:
+        return {"result": "Action executed: " + state["proposed_action"]}
+    return {"result": "Action rejected by human."}
+
+checkpointer = MemorySaver()
+app = graph.compile(checkpointer=checkpointer)
+
+# First call — runs until human_approval node, then PAUSES
+config = {"configurable": {"thread_id": "task-1"}}
+app.invoke({"task": "Book cheapest flight to NYC"}, config)
+
+# Human reviews in your UI and resumes with their decision
+app.invoke({"approved": True}, config)  # ← resumes from the checkpoint`,
+            funFact: '⏸️ LangGraph\'s interrupt() is the secret to safe agentic AI. Instead of the AI autonomously spending your money or sending emails on your behalf, you build in "pause and confirm" gates at the risky steps. The AI does the thinking; humans approve the actions.',
+          },
+        ],
+      },
+
       // ── What IS LangChain? ──────────────────────────────────────────────
       {
         id: 'lc-core',
