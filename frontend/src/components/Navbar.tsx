@@ -12,7 +12,8 @@ const links = [
   { to: '/interview-questions', label: 'Interview Q&A' },
   { to: '/mock-interview', label: 'Mock Interview' },
   { to: '/code', label: 'Code Editor' },
-  { to: '/canvas', label: 'Canvas' },
+  { to: '/canvas', label: 'Interview Canvas' },
+  { to: '/resume', label: 'Resume Builder' },
 ];
 
 export default function Navbar() {
@@ -53,17 +54,7 @@ export default function Navbar() {
             : 'bg-white/5 border-gray-600 text-gray-300 hover:bg-white/10'
         }`}
       >
-        {isLight ? (
-          <>
-            <span>🌙</span>
-            <span className="hidden sm:inline">Dark</span>
-          </>
-        ) : (
-          <>
-            <span>☀️</span>
-            <span className="hidden sm:inline">Light</span>
-          </>
-        )}
+        {isLight ? <span>🌙</span> : <span>☀️</span>}
       </button>
     </nav>
   );

@@ -12,6 +12,7 @@ import InterviewQuestionsPage from './pages/InterviewQuestionsPage';
 import HackerRankPage from './pages/HackerRankPage';
 import MockInterviewPage from './pages/MockInterviewPage';
 import { ThemeProvider, useTheme } from './ThemeContext';
+import ResumePage from './pages/ResumePage';
 
 function AppContent() {
   const { theme } = useTheme();
@@ -32,6 +33,7 @@ function AppContent() {
             <Route path="/interview-questions" element={<InterviewQuestionsPage />} />
             <Route path="/mock-interview" element={<MockInterviewPage />} />
             <Route path="/hackerrank" element={<HackerRankPage />} />
+            <Route path="/resume" element={<ResumePage />} />
           </Routes>
         </main>
       </div>
