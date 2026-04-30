@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { ResumeData } from '../utils/resumeTemplateRenderer';
 
 const api = axios.create({
   baseURL: '/api/v1',
@@ -59,4 +60,8 @@ export const resumeApi = {
 
   updateResume: (data: UpdateResumePayload) =>
     api.post<{ resume: string }>('/resume/update', data),
+
+  /** Parse resume text into structured ResumeData using AI. */
+  extractResume: (resumeText: string) =>
+    api.post<ResumeData>('/resume/extract', { resumeText }),
 };

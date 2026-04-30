@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { resumeApi, type CreateResumePayload, type WorkExperiencePayload, type EducationEntryPayload } from '../api/resumeApi';
 import { downloadDocx, downloadPdf, extractCandidateName } from '../utils/resumeExport';
 import { extractTextFromFile } from '../utils/resumeParser';
+import { generateCountryDocx, normalizeResumeData } from '../utils/resumeTemplateRenderer';
+import type { ResumeData } from '../utils/resumeTemplateRenderer';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -216,14 +218,14 @@ function ResumePreview({
 // ── Country Export Mode ────────────────────────────────────────────────────────
 
 function CountryExportMode() {
-  const [resumeText, setResumeText]     = useState('');
-  const [selectedCountry, setSelected]  = useState('');
-  const [jobDescription, setJd]         = useState('');
-  const [pages, setPages]               = useState(2);
+  const [resumeText, setResumeText]       = useState('');
+  const [selectedCountry, setSelected]    = useState('');
   const [uploadLoading, setUploadLoading] = useState(false);
-  const [generating, setGenerating]     = useState(false);
-  const [error, setError]               = useState('');
-  const [successCountry, setSuccess]    = useState('');
+  const [generating, setGenerating]       = useState(false);
+  const [step, setStep]                   = useState('');   // progress message
+  const [error, setError]                 = useState('');
+  const [successCountry, setSuccess]      = useState('');
+  const [lastData, setLastData]           = useState<ResumeData | null>(null);
 
   const canGenerate = resumeText.trim().length > 0 && selectedCountry.length > 0 && !generating;
 
@@ -236,6 +238,8 @@ function CountryExportMode() {
     try {
       const text = await extractTextFromFile(file);
       setResumeText(text);
+      setSuccess('');
+      setLastData(null);
     } catch (err) {
       setError(`Could not read file: ${(err as Error).message}`);
     } finally {
@@ -243,31 +247,48 @@ function CountryExportMode() {
     }
   };
 
+  const buildAndDownload = async (data: ResumeData, country: string) => {
+    setStep(`Building ${country} DOCX…`);
+    const blob = await generateCountryDocx(data, country);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${data.name.replace(/\s+/g, '_')}_${country.replace(/\s+/g, '_')}.docx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const handleGenerate = async () => {
     setError('');
     setSuccess('');
     setGenerating(true);
     try {
-      const { data } = await resumeApi.createResume({
-        fullName: '', email: '', phone: '', linkedIn: '', github: '', website: '',
-        country: selectedCountry,
-        pages,
-        summary: jobDescription ? `Tailor keywords from this JD: ${jobDescription.slice(0, 400)}` : '',
-        oldResume: resumeText,
-        workExperience: [],
-        education: [],
-        skills: [],
-        certifications: [],
-        languages: [],
-      });
-      const name = data.resume.match(/^#\s+(.*)/m)?.[1]?.trim() ?? 'Resume';
-      await downloadDocx(data.resume, `${name}_${selectedCountry.replace(/\s+/g, '_')}`);
+      let data: ResumeData;
+
+      if (lastData) {
+        // Re-use cached extraction — just re-render for the new country
+        data = lastData;
+      } else {
+        setStep('AI extracting resume data…');
+        const resp = await resumeApi.extractResume(resumeText);
+        // Backend returns application/json — axios auto-parses it
+        const raw = typeof resp.data === 'string' ? JSON.parse(resp.data) : resp.data;
+        console.log('[Extract] Raw AI response:', JSON.stringify(raw, null, 2));
+        data = normalizeResumeData(raw);
+        console.log('[Extract] Normalized:', JSON.stringify(data, null, 2));
+        setLastData(data);
+      }
+
+      await buildAndDownload(data, selectedCountry);
       setSuccess(selectedCountry);
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message ?? 'Generation failed. Please try again.');
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
+      setError(err?.response?.data?.message ?? err?.message ?? 'Generation failed. Please try again.');
     } finally {
       setGenerating(false);
+      setStep('');
     }
   };
 
@@ -286,7 +307,7 @@ function CountryExportMode() {
               disabled={uploadLoading} onChange={handleUpload} />
           </label>
           {resumeText && (
-            <button type="button" onClick={() => { setResumeText(''); setSuccess(''); }}
+            <button type="button" onClick={() => { setResumeText(''); setSuccess(''); setLastData(null); }}
               className="text-xs text-red-400 hover:text-red-300">✕ Clear</button>
           )}
           {resumeText && !uploadLoading && (
@@ -297,7 +318,7 @@ function CountryExportMode() {
           className={`${textareaCls} font-mono text-xs`}
           rows={resumeText ? 6 : 3}
           value={resumeText}
-          onChange={(e) => { setResumeText(e.target.value); setSuccess(''); }}
+          onChange={(e) => { setResumeText(e.target.value); setSuccess(''); setLastData(null); }}
           placeholder="…or paste your resume text here (plain text or Markdown)"
         />
       </div>
@@ -327,32 +348,6 @@ function CountryExportMode() {
         </div>
       </div>
 
-      {/* Optional JD + pages */}
-      <div className="bg-gray-800/30 rounded-xl border border-gray-700 p-5">
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 pb-1 border-b border-gray-700/60">
-          Step 3 — Options
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="sm:col-span-2">
-            <label className="block text-xs text-gray-400 mb-1">Job Description (optional — for keyword tailoring)</label>
-            <textarea
-              className={`${textareaCls} text-xs`}
-              rows={4}
-              value={jobDescription}
-              onChange={(e) => setJd(e.target.value)}
-              placeholder="Paste job description to get keywords woven into the resume…"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Number of Pages</label>
-            <PagePicker value={pages} onChange={setPages} />
-            <p className="text-[10px] text-gray-500 mt-2">
-              AI adjusts content density to fit the target page count.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Generate button */}
       {error && (
         <p className="text-red-400 text-sm p-3 bg-red-400/10 rounded-lg border border-red-400/20">{error}</p>
@@ -366,7 +361,7 @@ function CountryExportMode() {
               {successCountry} resume downloaded!
             </p>
             <p className="text-xs text-gray-400 mt-0.5">
-              AI formatted it for the {successCountry} job market and saved it as a DOCX file.
+              Formatted with fixed templates — same quality as the Python script every time.
             </p>
           </div>
           <button
@@ -387,14 +382,15 @@ function CountryExportMode() {
         className={`${btnPrimary} w-full py-4 text-base font-semibold`}
       >
         {generating
-          ? `Generating ${pages}-page ${selectedCountry} resume…`
+          ? (step || `Generating ${selectedCountry} resume…`)
           : selectedCountry
             ? `⬇ Generate & Download ${selectedCountry} Resume (DOCX)`
             : '⬇ Generate & Download Resume (select a country above)'}
       </button>
 
       <p className="text-xs text-gray-500 text-center">
-        AI reads your resume, re-formats it with {selectedCountry || 'country'}-specific conventions, and downloads a DOCX file instantly.
+        AI extracts your resume data once, then a fixed template renders the DOCX — consistent formatting every time.
+        {lastData && ' ✓ Data already extracted — changing country re-downloads instantly.'}
       </p>
     </div>
   );

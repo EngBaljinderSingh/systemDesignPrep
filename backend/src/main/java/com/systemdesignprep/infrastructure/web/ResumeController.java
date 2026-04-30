@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.systemdesignprep.infrastructure.ai.LangChainAiAdapter;
 import com.systemdesignprep.infrastructure.web.dto.AnalyzeJobDescriptionRequest;
 import com.systemdesignprep.infrastructure.web.dto.CreateResumeRequest;
+import com.systemdesignprep.infrastructure.web.dto.ExtractResumeRequest;
 import com.systemdesignprep.infrastructure.web.dto.UpdateResumeRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -61,6 +62,26 @@ public class ResumeController {
         String prompt = buildUpdateResumePrompt(req);
         String resume = ai.generateRawResponse(prompt);
         return ResponseEntity.ok(Map.of("resume", resume));
+    }
+
+    @PostMapping("/extract")
+    public ResponseEntity<Object> extractResume(@Valid @RequestBody ExtractResumeRequest req) {
+        String prompt = buildExtractResumePrompt(req.resumeText());
+        String json = ai.generateRawResponse(prompt);
+        log.info("=== AI RAW EXTRACT RESPONSE ===\n{}", json);
+        // Strip markdown code fences if the LLM added them
+        String clean = json.trim();
+        if (clean.startsWith("```")) {
+            clean = clean.replaceAll("(?s)^```[a-zA-Z]*\\n?", "").replaceAll("```\\s*$", "").trim();
+        }
+        try {
+            Object parsed = objectMapper.readValue(clean, new TypeReference<>() {});
+            return ResponseEntity.ok(parsed);
+        } catch (Exception e) {
+            log.error("Failed to parse AI extract JSON: {}", e.getMessage());
+            log.error("Raw JSON was: {}", clean);
+            return ResponseEntity.ok(Map.of("_raw", clean, "_error", "AI returned malformed JSON"));
+        }
     }
 
     // ── Prompt builders ──────────────────────────────────────────────────────
@@ -217,6 +238,94 @@ public class ResumeController {
     }
 
     // ── Country-specific ATS guidance ────────────────────────────────────────
+
+    private String buildExtractResumePrompt(String resumeText) {
+        return """
+                You are a resume parser. Extract ALL information from the resume below into JSON.
+
+                CRITICAL INSTRUCTIONS:
+                - Return ONLY valid JSON. No markdown fences, no explanation, no preamble.
+                - You MUST use EXACTLY these field names — no synonyms, no snake_case alternatives.
+                - Fill every field from the resume. Do NOT leave any field as an empty string if the data exists.
+
+                EXACT JSON STRUCTURE (copy this structure, fill with real values from the resume):
+                {
+                  "name": "FULL NAME HERE",
+                  "email": "EMAIL HERE",
+                  "phone": "PHONE NUMBER HERE",
+                  "linkedin": "LINKEDIN URL OR HANDLE HERE",
+                  "github": "GITHUB URL OR HANDLE HERE OR null",
+                  "website": "PERSONAL WEBSITE OR null",
+                  "location": "CITY, COUNTRY HERE",
+                  "dob": "DATE OF BIRTH OR null",
+                  "nationality": "NATIONALITY OR null",
+                  "summary": "FULL PROFESSIONAL SUMMARY PARAGRAPH HERE",
+                  "work": [
+                    {
+                      "company": "EXACT COMPANY NAME",
+                      "location": "CITY, COUNTRY",
+                      "dates": "Mar 2020 – Present",
+                      "title": "EXACT JOB TITLE",
+                      "formerTitle": "PREVIOUS TITLE IF PROMOTED, else null",
+                      "bullets": [
+                        "First achievement bullet exactly as written",
+                        "Second achievement bullet exactly as written"
+                      ],
+                      "industry": "INDUSTRY SECTOR OR null",
+                      "companySize": "COMPANY SIZE OR null"
+                    }
+                  ],
+                  "projects": [
+                    {
+                      "company": "PROJECT NAME",
+                      "location": "",
+                      "dates": "YEAR OR DATE RANGE",
+                      "title": "TECH STACK OR SUBTITLE",
+                      "bullets": [
+                        "What the project does or achieved"
+                      ]
+                    }
+                  ],
+                  "education": [
+                    {
+                      "institution": "UNIVERSITY OR SCHOOL NAME",
+                      "degree": "DEGREE NAME AND FIELD",
+                      "dates": "2015 – 2019",
+                      "location": "CITY, COUNTRY OR null"
+                    }
+                  ],
+                  "skills": {
+                    "Category Name": "skill1, skill2, skill3",
+                    "Another Category": "tool1, tool2"
+                  },
+                  "patents": [
+                    {
+                      "title": "EXACT PATENT TITLE",
+                      "year": "YEAR FILED",
+                      "description": "ONE SENTENCE DESCRIPTION"
+                    }
+                  ],
+                  "awards": ["Award name and year"],
+                  "languages": [
+                    ["English", "Professional (C1)"],
+                    ["Hindi", "Native"]
+                  ],
+                  "certifications": ["Certification Name (Issuer, Year)"]
+                }
+
+                RULES:
+                - "work" = professional employment only (NOT personal projects)
+                - "projects" = personal/side projects, open source, hobby projects only
+                - "languages" MUST be a JSON array of 2-element arrays: ["Language", "Proficiency"]
+                - "skills" MUST be an object with category keys, NOT an array
+                - Extract ALL work entries — do not omit any
+                - Copy bullet points VERBATIM from the resume
+                - For dates, combine start and end: "Mar 2020 – Present" or "2018 – 2021"
+
+                RESUME TEXT TO PARSE:
+                %s
+                """.formatted(resumeText);
+    }
 
     private String getCountryGuidance(String country) {
         return switch (country.toUpperCase().trim()) {

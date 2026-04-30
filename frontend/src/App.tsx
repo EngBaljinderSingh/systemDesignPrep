@@ -1,3 +1,4 @@
+import OpenRouterChat from './components/OpenRouterChat';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
@@ -21,6 +22,7 @@ function AppContent() {
       <div className={`h-screen flex flex-col bg-surface ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
         <Navbar />
         <main className="flex-1 overflow-auto">
+          <OpenRouterChat />
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/algorithms" element={<AlgorithmPatternsPage />} />

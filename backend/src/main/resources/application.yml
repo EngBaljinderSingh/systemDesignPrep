@@ -1,3 +1,8 @@
+# ── OpenAI-compatible (OpenRouter) AI ──
+openai:
+  api-key: ${OPENROUTER_API_KEY:}
+  model: ${OPENROUTER_MODEL:meta-llama/llama-3.3-70b-instruct}
+  base-url: ${OPENROUTER_API_URL:https://openrouter.ai/api/v1/chat/completions}
 # ═══════════════════════════════════════════════
 # System Design Prep — Application Configuration
 # ═══════════════════════════════════════════════
@@ -59,11 +64,7 @@ server:
   port: ${PORT:8080}
   shutdown: graceful
 
-# ── AI Configuration ──
-ai:
-  ollama:
-    base-url: ${OLLAMA_BASE_URL:http://ollama:11434}
-    model: ${OLLAMA_MODEL:llama3.2:1b}
+
 
 # ── Logging ──
 logging:

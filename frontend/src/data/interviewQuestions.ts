@@ -1512,6 +1512,113 @@ export const interviewQuestions: InterviewQuestion[] = [
       'Iterative: `int sum = 0; while (n > 0) { sum += n % 10; n /= 10; }`. Using streams: `String.valueOf(n).chars().map(c -> c - \'0\').sum()`. Recursive: `digitSum(n) = n < 10 ? n : n % 10 + digitSum(n / 10)`. Handle negative numbers: take `Math.abs(n)` first.',
   },
 
+  {
+    id: 'code-13',
+    technology: 'Coding',
+    experience: ['Mid', 'Senior'],
+    tags: ['Concurrency', 'Queue', 'LinkedList', 'Producer-Consumer', 'Multithreading'],
+    question: 'Implement a Bounded Blocking Queue using LinkedList with a Producer-Consumer example.',
+    answer:
+      'A Bounded Blocking Queue has a fixed maximum capacity and blocks calling threads:\n' +
+      '  • put()  — blocks if the queue is FULL, waits until a consumer frees space\n' +
+      '  • take() — blocks if the queue is EMPTY, waits until a producer adds an item\n\n' +
+      '──────────────────────────────────────────\n' +
+      'Implementation — LinkedList + synchronized + wait/notifyAll\n' +
+      '──────────────────────────────────────────\n' +
+      'class BoundedBlockingQueue<T> {\n' +
+      '    private final LinkedList<T> queue = new LinkedList<>();\n' +
+      '    private final int capacity;\n\n' +
+      '    public BoundedBlockingQueue(int capacity) {\n' +
+      '        this.capacity = capacity;\n' +
+      '    }\n\n' +
+      '    // Producer calls this\n' +
+      '    public synchronized void put(T item) throws InterruptedException {\n' +
+      '        while (queue.size() == capacity) {   // while — NOT if (handles spurious wakeups)\n' +
+      '            wait();\n' +
+      '        }\n' +
+      '        queue.addLast(item);\n' +
+      '        notifyAll();   // wake up sleeping consumers\n' +
+      '    }\n\n' +
+      '    // Consumer calls this\n' +
+      '    public synchronized T take() throws InterruptedException {\n' +
+      '        while (queue.isEmpty()) {\n' +
+      '            wait();\n' +
+      '        }\n' +
+      '        T item = queue.removeFirst();\n' +
+      '        notifyAll();   // wake up sleeping producers\n' +
+      '        return item;\n' +
+      '    }\n\n' +
+      '    public synchronized int size() { return queue.size(); }\n' +
+      '}\n\n' +
+      '──────────────────────────────────────────\n' +
+      'Producer\n' +
+      '──────────────────────────────────────────\n' +
+      'class Producer implements Runnable {\n' +
+      '    private final BoundedBlockingQueue<Integer> queue;\n\n' +
+      '    Producer(BoundedBlockingQueue<Integer> queue) { this.queue = queue; }\n\n' +
+      '    @Override\n' +
+      '    public void run() {\n' +
+      '        for (int i = 1; i <= 10; i++) {\n' +
+      '            try {\n' +
+      '                queue.put(i);\n' +
+      '                System.out.println(Thread.currentThread().getName() + " Produced: " + i\n' +
+      '                    + "  |  queue size: " + queue.size());\n' +
+      '                Thread.sleep(100);\n' +
+      '            } catch (InterruptedException e) {\n' +
+      '                Thread.currentThread().interrupt();\n' +
+      '            }\n' +
+      '        }\n' +
+      '    }\n' +
+      '}\n\n' +
+      '──────────────────────────────────────────\n' +
+      'Consumer\n' +
+      '──────────────────────────────────────────\n' +
+      'class Consumer implements Runnable {\n' +
+      '    private final BoundedBlockingQueue<Integer> queue;\n\n' +
+      '    Consumer(BoundedBlockingQueue<Integer> queue) { this.queue = queue; }\n\n' +
+      '    @Override\n' +
+      '    public void run() {\n' +
+      '        while (!Thread.currentThread().isInterrupted()) {\n' +
+      '            try {\n' +
+      '                int item = queue.take();\n' +
+      '                System.out.println(Thread.currentThread().getName() + " Consumed: " + item\n' +
+      '                    + "  |  queue size: " + queue.size());\n' +
+      '                Thread.sleep(300); // consumer is slower — demonstrates blocking\n' +
+      '            } catch (InterruptedException e) {\n' +
+      '                Thread.currentThread().interrupt();\n' +
+      '            }\n' +
+      '        }\n' +
+      '    }\n' +
+      '}\n\n' +
+      '──────────────────────────────────────────\n' +
+      'Usage (capacity = 3, 1 producer, 2 consumers)\n' +
+      '──────────────────────────────────────────\n' +
+      'BoundedBlockingQueue<Integer> q = new BoundedBlockingQueue<>(3);\n' +
+      'Thread p1 = new Thread(new Producer(q), "Producer-1");\n' +
+      'Thread c1 = new Thread(new Consumer(q), "Consumer-1");\n' +
+      'Thread c2 = new Thread(new Consumer(q), "Consumer-2");\n' +
+      'p1.start(); c1.start(); c2.start();\n\n' +
+      'Sample output:\n' +
+      '  Producer-1 Produced: 1  |  queue size: 1\n' +
+      '  Producer-1 Produced: 2  |  queue size: 2\n' +
+      '  Producer-1 Produced: 3  |  queue size: 3\n' +
+      '  [Producer blocks here — queue full]\n' +
+      '  Consumer-1 Consumed: 1  |  queue size: 2\n' +
+      '  Producer-1 Produced: 4  |  queue size: 3\n\n' +
+      '──────────────────────────────────────────\n' +
+      'Key Rules & Interview Points\n' +
+      '──────────────────────────────────────────\n' +
+      '• Always use while (not if) around wait() — protects against spurious wakeups\n' +
+      '• notifyAll() is safer than notify() when both producers and consumers are waiting\n' +
+      '• In Java 5+: ReentrantLock with two Conditions gives finer control:\n' +
+      '    Condition notFull  = lock.newCondition();\n' +
+      '    Condition notEmpty = lock.newCondition();\n' +
+      '    In put():  notFull.await()  then notEmpty.signal()\n' +
+      '    In take(): notEmpty.await() then notFull.signal()  ← only wakes producers, not other consumers\n' +
+      '• Java built-in alternatives: ArrayBlockingQueue (bounded), LinkedBlockingQueue (optionally bounded)\n' +
+      '• Real-world use cases: thread pools (task queue), log pipelines, event-driven systems',
+  },
+
   // ── PUZZLES ───────────────────────────────────────────────────────────────
   {
     id: 'puz-1',
@@ -1539,6 +1646,83 @@ export const interviewQuestions: InterviewQuestion[] = [
     question: '100 bottles of pills, each pill weighs 1g. One bottle is faulty: each pill in it weighs 1.1g. You can use a scale only once. How do you identify the faulty bottle?',
     answer:
       'Number the bottles 1 to 100. Take 1 pill from bottle 1, 2 from bottle 2, ..., 100 from bottle 100. Total pills = 5050. If all pills were 1g, the scale would read 5050g. The actual reading will be heavier. Extra weight = (reading − 5050) × 10. If extra weight is, say, 0.3g, the faulty bottle is #3 (it contributed 3 × 0.1g extra). One weighing, no guessing.',
+  },
+
+  {
+    id: 'sd-1',
+    technology: 'System Design',
+    experience: ['Mid', 'Senior'],
+    tags: ['Tic Tac Toe', 'Scalability', 'Capacity Planning', 'Realtime'],
+    question: 'Design Tic-Tac-Toe. Start with the high-level design, then go in depth. If there are 100,000 users initially, how many instances do you need, and what happens if traffic doubles?',
+    answer:
+      '1. High-level design\n' +
+      'Goal: let users create/join games, make moves in turn, see board state in near real time, and finish the match correctly.\n\n' +
+      'Core components:\n' +
+      '• Client: web/mobile UI showing board, status, and opponent moves\n' +
+      '• API Gateway / Load Balancer: routes traffic to stateless app servers\n' +
+      '• Game Service: create game, join game, validate moves, decide win/draw, expose game state\n' +
+      '• Realtime channel: WebSocket or SSE for pushing opponent moves instantly\n' +
+      '• Cache / fast store: Redis for active game state and matchmaking data\n' +
+      '• Database: PostgreSQL/MySQL for user profiles, completed games, analytics, audit trail\n\n' +
+      'Typical flow:\n' +
+      '• Player A creates a game\n' +
+      '• Player B joins\n' +
+      '• Each move goes to Game Service\n' +
+      '• Service validates turn, cell emptiness, and game status\n' +
+      '• Updated state is persisted and pushed to both players\n' +
+      '• On win/draw, game is marked complete and archived\n\n' +
+      '2. In-depth design\n' +
+      'Data model:\n' +
+      'Game { gameId, playerX, playerO, board[3][3], nextTurn, status, winner, createdAt, updatedAt, version }\n' +
+      'Move { gameId, playerId, row, col, moveNumber, createdAt }\n\n' +
+      'API examples:\n' +
+      '• POST /games -> create game\n' +
+      '• POST /games/{id}/join -> join as second player\n' +
+      '• POST /games/{id}/moves -> submit move\n' +
+      '• GET /games/{id} -> fetch current board\n' +
+      '• WS /games/{id}/events -> realtime updates\n\n' +
+      'Move validation logic:\n' +
+      '• game must exist and not be finished\n' +
+      '• current player must match nextTurn\n' +
+      '• row/col must be in bounds\n' +
+      '• target cell must be empty\n' +
+      '• after placing mark, check row/column/diagonal for win\n' +
+      '• if board full and no win -> draw\n\n' +
+      'Concurrency and correctness:\n' +
+      '• Use optimistic locking with version column, or atomic compare-and-set in Redis\n' +
+      '• Prevent duplicate moves on same cell\n' +
+      '• Idempotency key can protect against client retries\n' +
+      '• Game servers should be stateless so scaling horizontally is easy\n\n' +
+      'Storage strategy:\n' +
+      '• Active games in Redis for very fast reads/writes\n' +
+      '• Completed games asynchronously written to SQL for history and reporting\n' +
+      '• TTL can remove abandoned active games automatically\n\n' +
+      '3. Capacity planning for 100,000 users\n' +
+      'Assume 100,000 registered users does NOT mean 100,000 simultaneously making moves. Interviewers usually want active concurrency assumptions.\n\n' +
+      'Reasonable assumptions:\n' +
+      '• 10% concurrently online = 10,000 active users\n' +
+      '• 2 players per game = about 5,000 active games\n' +
+      '• Tic-tac-toe is light traffic: maybe 1-2 requests/sec per game at peak including polling/events\n' +
+      '• So roughly 5,000 to 10,000 lightweight requests/sec plus WebSocket connections\n\n' +
+      'Instance estimate:\n' +
+      '• If one app instance comfortably handles about 2,000-3,000 concurrent websocket users or around 1,500-2,000 lightweight req/sec, start with 4 app instances minimum\n' +
+      '• In production you do not run exactly at max, so a safer answer is 5-6 instances behind a load balancer\n' +
+      '• Example: 6 instances means each handles about 1,600-1,700 active users if 10,000 are online\n\n' +
+      'Supporting infra:\n' +
+      '• 1 load balancer\n' +
+      '• 2+ Redis nodes or managed Redis with replica/failover\n' +
+      '• 2+ DB instances or primary + replica setup\n\n' +
+      '4. If traffic doubles\n' +
+      'If active load doubles from 10,000 concurrent users to 20,000 concurrent users, scale horizontally first.\n' +
+      '• App servers: double from about 6 to about 10-12 instances\n' +
+      '• Redis: scale vertically or shard if active game volume becomes large\n' +
+      '• DB: offload reads to replicas and write only game summaries/history\n' +
+      '• Realtime layer: ensure sticky sessions are not required, or use shared pub/sub so any node can publish updates\n\n' +
+      '5. What interviewers want to hear\n' +
+      '• Tic-tac-toe itself is simple, but correctness, concurrency, and realtime updates matter\n' +
+      '• State should not live only in one server memory, otherwise that server becomes a single point of failure\n' +
+      '• Capacity numbers depend on assumptions, so state your assumptions clearly before giving instance count\n' +
+      '• For this problem, saying \"start with 5-6 stateless app instances for 100k users, and scale to 10-12 when traffic doubles\" is a defensible interview answer if your concurrency assumptions are explicit.',
   },
 
   // ── OTHERS ───────────────────────────────────────────────────────────────────

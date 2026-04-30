@@ -15,16 +15,13 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-sdp_local_pass}
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      AI_PROVIDER: ollama
-      OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:1b}
+      # AI_PROVIDER, OLLAMA_BASE_URL, OLLAMA_MODEL removed (migrating to OpenRouter)
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-      ollama:
-        condition: service_started
+      # ollama dependency removed
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 15s
@@ -50,17 +47,7 @@ services:
     networks:
       - sdp-network
 
-  # ──────────────────────────────────────────────
-  # Ollama — local LLM (free, last-resort fallback)
-  # ──────────────────────────────────────────────
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama-data:/root/.ollama
-    networks:
-      - sdp-network
+
 
   # ──────────────────────────────────────────────
   # PostgreSQL (mirrors Supabase in production)
