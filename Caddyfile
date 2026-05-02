@@ -1,0 +1,31 @@
+# Caddyfile — automatic HTTPS via Let's Encrypt for your domain
+# Replace {$DOMAIN} with your actual domain (set DOMAIN env var or edit directly)
+# Example: systemdesignprep.com
+{$DOMAIN} {
+    # Frontend (React SPA served by nginx)
+    reverse_proxy /api/* backend:8080
+    reverse_proxy /* frontend:3000
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    # Compress responses
+    encode gzip
+
+    # Access logging
+    log {
+        output stderr
+        level INFO
+    }
+}
+
+# Redirect plain HTTP → HTTPS (Caddy does this automatically, but explicit for clarity)
+http://{$DOMAIN} {
+    redir https://{$DOMAIN}{uri} permanent
+}

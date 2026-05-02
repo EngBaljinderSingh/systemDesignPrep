@@ -3,6 +3,11 @@ openai:
   api-key: ${OPENROUTER_API_KEY:}
   model: ${OPENROUTER_MODEL:meta-llama/llama-3.3-70b-instruct}
   base-url: ${OPENROUTER_API_URL:https://openrouter.ai/api/v1/chat/completions}
+# --- SiliconFlow AI ---
+siliconflow:
+  api-key: ${SILICONFLOW_API_KEY:}
+  model: ${SILICONFLOW_MODEL:deepseek-ai/deepseek-vl-1.3b}
+  base-url: ${SILICONFLOW_API_URL:https://api.siliconflow.com/v1/chat/completions}
 # ═══════════════════════════════════════════════
 # System Design Prep — Application Configuration
 # ═══════════════════════════════════════════════
@@ -17,8 +22,8 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:sdp_user}
     password: ${SPRING_DATASOURCE_PASSWORD:sdp_local_pass}
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
+      maximum-pool-size: 6
+      minimum-idle: 1
       connection-timeout: 20000
 
   jpa:
@@ -64,12 +69,21 @@ server:
   port: ${PORT:8080}
   shutdown: graceful
 
+# ── App-specific feature toggles ──
+sdp:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:80}
+  cache:
+    provider: ${SDP_CACHE_PROVIDER:redis}
+  code-runner:
+    enabled: ${SDP_CODE_RUNNER_ENABLED:true}
+
 
 
 # ── Logging ──
 logging:
   level:
-    com.systemdesignprep: DEBUG
+    com.systemdesignprep: INFO
     org.springframework.security: WARN
   pattern:
     console: "%d{ISO8601} [%thread] %-5level %logger{36} - %msg%n"

@@ -1,6 +1,6 @@
 // OpenRouterChat.tsx
 // Chat component using OpenRouter API (Llama 4 Scout, Qwen3.5 9B, MiMo-V2-Flash)
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 // import { useTheme } from '../ThemeContext';
 
 interface Message {
@@ -33,11 +33,28 @@ export default function OpenRouterChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  async function sendMessage() {
-    if (!input.trim() || isLoading) return;
+  // Limit input to 300 characters to reduce LLM cost
+  const MAX_INPUT_LENGTH = 300;
+
+  // Debounce sendMessage to prevent rapid repeated calls
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const sendMessage = useCallback(async () => {
+    const trimmedInput = input.trim();
+    if (!trimmedInput || isLoading) return;
+    if (trimmedInput.length > MAX_INPUT_LENGTH) {
+      setError(`Prompt too long. Please shorten to ${MAX_INPUT_LENGTH} characters or less.`);
+      return;
+    }
+    // Warn if user is sending the same prompt as their last message
+    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+    if (lastUserMsg && lastUserMsg.content === trimmedInput) {
+      setError('You just sent this prompt. Please modify your question to avoid duplicate AI responses.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
-    const userMsg: Message = { role: 'user', content: input.trim() };
+    const userMsg: Message = { role: 'user', content: trimmedInput };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     try {
@@ -65,7 +82,16 @@ export default function OpenRouterChat() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [input, isLoading, messages]);
+
+  // Debounced handler for form submit
+  const handleDebouncedSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      sendMessage();
+    }, 500); // 500ms debounce
+  };
 
   return (
     <>
@@ -109,16 +135,19 @@ export default function OpenRouterChat() {
             <div ref={messagesEndRef} />
           </div>
           {/* Input */}
-          <form className="flex items-end gap-2 p-3 border-t dark:border-gray-700" onSubmit={e => { e.preventDefault(); sendMessage(); }}>
+          <form className="flex items-end gap-2 p-3 border-t dark:border-gray-700" onSubmit={handleDebouncedSend}>
             <textarea
               ref={textareaRef}
               className="flex-1 resize-none rounded-lg border p-2 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-400"
               rows={2}
               value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder="Ask coding/system design questions..."
+              onChange={e => {
+                if (e.target.value.length <= MAX_INPUT_LENGTH) setInput(e.target.value);
+              }}
+              placeholder={`Ask coding/system design questions... (max ${MAX_INPUT_LENGTH} chars)`}
               disabled={isLoading}
               style={{ minHeight: 38, maxHeight: 80 }}
+              maxLength={MAX_INPUT_LENGTH}
             />
             <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold disabled:opacity-60" disabled={isLoading || !input.trim()}>
               Send

@@ -44,7 +44,7 @@ public class ResumeController {
             }
         }
         String prompt = buildCreateResumePrompt(req);
-        String resume = ai.generateRawResponse(prompt);
+        String resume = ai.generateRawResponse(prompt, "anonymous");
         return ResponseEntity.ok(Map.of("resume", resume));
     }
 
@@ -52,7 +52,7 @@ public class ResumeController {
     public ResponseEntity<Map<String, Object>> analyzeJobDescription(
             @Valid @RequestBody AnalyzeJobDescriptionRequest req) {
         String prompt = buildAnalyzeJdPrompt(req.jobDescription());
-        String response = ai.generateRawResponse(prompt);
+        String response = ai.generateRawResponse(prompt, "anonymous");
         List<String> skills = parseSkillsList(response);
         return ResponseEntity.ok(Map.of("skills", skills));
     }
@@ -60,14 +60,14 @@ public class ResumeController {
     @PostMapping("/update")
     public ResponseEntity<Map<String, String>> updateResume(@Valid @RequestBody UpdateResumeRequest req) {
         String prompt = buildUpdateResumePrompt(req);
-        String resume = ai.generateRawResponse(prompt);
+        String resume = ai.generateRawResponse(prompt, "anonymous");
         return ResponseEntity.ok(Map.of("resume", resume));
     }
 
     @PostMapping("/extract")
     public ResponseEntity<Object> extractResume(@Valid @RequestBody ExtractResumeRequest req) {
         String prompt = buildExtractResumePrompt(req.resumeText());
-        String json = ai.generateRawResponse(prompt);
+        String json = ai.generateRawResponse(prompt, "anonymous");
         log.info("=== AI RAW EXTRACT RESPONSE ===\n{}", json);
         // Strip markdown code fences if the LLM added them
         String clean = json.trim();

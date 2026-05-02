@@ -140,6 +140,8 @@ interface RunOutput {
   loading: boolean;
 }
 
+const CODE_RUNNER_ENABLED = import.meta.env.VITE_ENABLE_CODE_RUNNER !== 'false';
+
 export interface CodeEditorProps {
   problemTitle?: string;
   problemDescription?: string;
@@ -155,6 +157,7 @@ export default function CodeEditorPage({ problemTitle, problemDescription, onClo
   const runtimeVersions = useRef<Record<string, string>>({});
 
   useEffect(() => {
+    if (!CODE_RUNNER_ENABLED) return;
     fetchRuntimeVersions().then((v) => { runtimeVersions.current = v; });
   }, []);
 
@@ -179,6 +182,16 @@ export default function CodeEditorPage({ problemTitle, problemDescription, onClo
   }, [code, language, problemTitle, problemDescription]);
 
   const runCode = useCallback(async () => {
+    if (!CODE_RUNNER_ENABLED) {
+      setRunOutput({
+        stdout: '',
+        stderr: 'Code runner is disabled for this deployment profile.',
+        exitCode: -1,
+        loading: false,
+      });
+      return;
+    }
+
     const pistonLang = PISTON_LANGUAGES[language];
     if (!pistonLang) return;
     setRunOutput({ stdout: '', stderr: '', exitCode: null, loading: true });
@@ -276,7 +289,9 @@ export default function CodeEditorPage({ problemTitle, problemDescription, onClo
           </select>
           <button
             onClick={runCode}
-            className="text-xs px-3 py-1.5 bg-emerald-600/80 text-white rounded hover:bg-emerald-500/80 font-medium"
+            disabled={!CODE_RUNNER_ENABLED}
+            title={CODE_RUNNER_ENABLED ? 'Run code' : 'Code runner disabled in this deployment'}
+            className="text-xs px-3 py-1.5 bg-emerald-600/80 text-white rounded hover:bg-emerald-500/80 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             ▶ Run
           </button>

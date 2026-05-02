@@ -23,14 +23,14 @@ public class CodeController {
     @PostMapping("/review")
     public ResponseEntity<Map<String, String>> reviewCode(@Valid @RequestBody CodeReviewRequest req) {
         String prompt = buildReviewPrompt(req);
-        String review = ai.generateRawResponse(prompt);
+        String review = ai.generateRawResponse(prompt, "anonymous");
         return ResponseEntity.ok(Map.of("review", review));
     }
 
     @PostMapping("/hint")
     public ResponseEntity<Map<String, String>> getHint(@Valid @RequestBody CodeHintRequest req) {
         String prompt = buildHintPrompt(req);
-        String hint = ai.generateRawResponse(prompt);
+        String hint = ai.generateRawResponse(prompt, "anonymous");
         return ResponseEntity.ok(Map.of("hint", hint));
     }
 
