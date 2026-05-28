@@ -4,6 +4,9 @@
 {$DOMAIN} {
     # Frontend (React SPA served by nginx)
     reverse_proxy /api/* backend:8080
+    handle_path /piston/* {
+        reverse_proxy piston:2000
+    }
     reverse_proxy /* frontend:3000
 
     # Security headers

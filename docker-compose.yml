@@ -122,6 +122,8 @@ services:
     privileged: true
     tmpfs:
       - /piston/jobs
+    volumes:
+      - piston-data:/piston/packages
     ports:
       - "2000:2000"
     healthcheck:
@@ -136,7 +138,7 @@ services:
   # Installs language runtimes into Piston on first start
   piston-init:
     image: alpine:3.19
-    restart: on-failure:5
+    restart: on-failure:3
     depends_on:
       piston:
         condition: service_healthy
@@ -159,6 +161,7 @@ services:
           exit 1
         fi
 
+        # Install latest available version of a language
         install_pkg() {
           NAME="$$1"
           VER=$$(echo "$$PKGS" | jq -r --arg n "$$NAME" '[.[] | select(.language == $$n)] | .[0] | .language_version // empty')
@@ -174,12 +177,24 @@ services:
           return 0
         }
 
-        install_pkg python
+        # Install a specific version of a language
+        install_pkg_ver() {
+          NAME="$$1"
+          VER="$$2"
+          echo "Installing $$NAME@$$VER ..."
+          RES=$$(curl -sS -m 300 -X POST http://piston:2000/api/v2/packages \
+            -H 'Content-Type: application/json' \
+            -d '{"language":"'"$$NAME"'","version":"'"$$VER"'"}' 2>&1)
+          echo "  -> $$RES"
+        }
+
+        install_pkg_ver python 3.12.0
         install_pkg javascript || install_pkg node
         install_pkg typescript
         install_pkg java
         install_pkg go
         install_pkg mono
+        install_pkg_ver gcc 10.2.0
 
         echo "Piston runtime installation complete."
         echo "Installed: $$(curl -sf http://piston:2000/api/v2/runtimes | jq -r '[.[].language] | join(", ")')"
@@ -190,6 +205,8 @@ volumes:
   pgdata:
     driver: local
   ollama-data:
+    driver: local
+  piston-data:
     driver: local
 
 networks:

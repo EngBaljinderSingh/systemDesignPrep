@@ -33,12 +33,6 @@
             <artifactId>bucket4j-core</artifactId>
             <version>7.6.0</version>
         </dependency>
-        <!-- Spring AI Redis Vector Store -->
-        <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-redis</artifactId>
-            <version>0.8.1</version>
-        </dependency>
         <!-- WebClient for OpenRouter integration -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

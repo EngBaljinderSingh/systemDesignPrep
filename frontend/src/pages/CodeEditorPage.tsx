@@ -1,7 +1,8 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import axios, { type AxiosError } from 'axios';
 import Editor from '@monaco-editor/react';
 import { interviewApi } from '../api/interviewApi';
+import { setupMonaco, ENHANCED_EDITOR_OPTIONS } from '../utils/monacoSetup';
 
 function extractErrorMessage(err: unknown): string {
   const axiosErr = err as AxiosError<{ message?: string }>;
@@ -29,19 +30,63 @@ const PISTON_LANGUAGES: Record<string, { language: string; filename: string }> =
   typescript: { language: 'typescript', filename: 'solution.ts'   },
   cpp:        { language: 'c++',        filename: 'solution.cpp'  },
   go:         { language: 'go',         filename: 'solution.go'   },
-  csharp:     { language: 'mono',       filename: 'solution.cs'   },
+  csharp:     { language: 'csharp',     filename: 'solution.cs'   },
 };
 
-// Fetches installed runtimes once and returns a version map keyed by piston language name.
+// ── Module-level Piston runtime cache ──────────────────────────────────────
+// Persists across component remounts for the lifetime of the browser tab.
+let runtimeCache: Record<string, string> = {};
+let runtimeCacheFetchedAt = 0;
+const RUNTIME_CACHE_TTL_MS = 5 * 60 * 1000; // re-fetch after 5 minutes
+let inflight: Promise<Record<string, string>> | null = null;
+
 async function fetchRuntimeVersions(): Promise<Record<string, string>> {
-  try {
-    const { data } = await axios.get<{ language: string; version: string }[]>('/piston/api/v2/runtimes');
-    const map: Record<string, string> = {};
-    for (const r of data) map[r.language] = r.version;
-    return map;
-  } catch {
-    return {};
+  // Return cached result if still fresh
+  if (Object.keys(runtimeCache).length > 0 && Date.now() - runtimeCacheFetchedAt < RUNTIME_CACHE_TTL_MS) {
+    return runtimeCache;
   }
+  // Deduplicate concurrent requests
+  if (inflight) return inflight;
+  inflight = axios
+    .get<{ language: string; version: string; aliases?: string[] }[]>('/piston/api/v2/runtimes')
+    .then(({ data }) => {
+      const map: Record<string, string> = {};
+      for (const r of data) {
+        map[r.language] = r.version;
+        // Also index aliases (e.g. 'mono' → csharp version, 'ts' → typescript version)
+        if (Array.isArray(r.aliases)) {
+          for (const alias of r.aliases) {
+            if (!map[alias]) map[alias] = r.version;
+          }
+        }
+      }
+      runtimeCache = map;
+      runtimeCacheFetchedAt = Date.now();
+      return map;
+    })
+    .catch(() => runtimeCache) // on error return whatever we have
+    .finally(() => { inflight = null; });
+  return inflight;
+}
+
+/**
+ * Polls Piston every `intervalMs` until `pistonLang` appears in the runtime
+ * list, or `timeoutMs` elapses. Returns the version string or null on timeout.
+ */
+async function waitForRuntime(
+  pistonLang: string,
+  { intervalMs = 3000, timeoutMs = 90_000 } = {},
+): Promise<string | null> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    // Force a fresh fetch by invalidating the cache timestamp
+    runtimeCacheFetchedAt = 0;
+    const versions = await fetchRuntimeVersions();
+    if (versions[pistonLang]) return versions[pistonLang];
+    // Wait before retrying
+    await new Promise((res) => setTimeout(res, intervalMs));
+  }
+  return null;
 }
 
 const STARTERS: Record<string, string> = {
@@ -154,11 +199,10 @@ export default function CodeEditorPage({ problemTitle, problemDescription, onClo
   const [aiPanel, setAiPanel] = useState<AiPanel | null>(null);
   const [hintLevel, setHintLevel] = useState<'GENTLE' | 'MEDIUM' | 'DIRECT'>('GENTLE');
   const [runOutput, setRunOutput] = useState<RunOutput | null>(null);
-  const runtimeVersions = useRef<Record<string, string>>({});
 
+  // Warm the cache on first mount so the first Run click is instant
   useEffect(() => {
-    if (!CODE_RUNNER_ENABLED) return;
-    fetchRuntimeVersions().then((v) => { runtimeVersions.current = v; });
+    if (CODE_RUNNER_ENABLED) fetchRuntimeVersions();
   }, []);
 
   const switchLanguage = useCallback((lang: string) => {
@@ -196,17 +240,21 @@ export default function CodeEditorPage({ problemTitle, problemDescription, onClo
     if (!pistonLang) return;
     setRunOutput({ stdout: '', stderr: '', exitCode: null, loading: true });
 
-    // Use dynamically discovered version, refresh if cache is empty
-    let versions = runtimeVersions.current;
-    if (!versions[pistonLang.language]) {
-      versions = await fetchRuntimeVersions();
-      runtimeVersions.current = versions;
-    }
-    const version = versions[pistonLang.language];
+    // Get cached version; if missing, poll until Piston installs it (up to 90s)
+    let version = (await fetchRuntimeVersions())[pistonLang.language];
     if (!version) {
       setRunOutput({
         stdout: '',
-        stderr: `Runtime "${pistonLang.language}" is not installed yet.\nWait ~60s after first \`docker compose up\` for piston-init to finish.\nOr check: http://localhost:2000/api/v2/runtimes`,
+        stderr: `⏳ Runtime "${pistonLang.language}" is still installing — waiting up to 90 s…`,
+        exitCode: null,
+        loading: true,
+      });
+      version = (await waitForRuntime(pistonLang.language)) ?? '';
+    }
+    if (!version) {
+      setRunOutput({
+        stdout: '',
+        stderr: `Runtime "${pistonLang.language}" did not become available within 90 s.\nCheck that the piston-init container finished: docker compose logs piston-init`,
         exitCode: -1,
         loading: false,
       });
@@ -333,6 +381,7 @@ export default function CodeEditorPage({ problemTitle, problemDescription, onClo
             value={code}
             onChange={(val) => setCode(val ?? '')}
             theme="vs-dark"
+            beforeMount={setupMonaco}
             options={{
               fontSize: 14,
               minimap: { enabled: false },
@@ -344,6 +393,7 @@ export default function CodeEditorPage({ problemTitle, problemDescription, onClo
               suggestOnTriggerCharacters: true,
               formatOnPaste: true,
               padding: { top: 12 },
+              ...ENHANCED_EDITOR_OPTIONS,
             }}
           />
         </div>

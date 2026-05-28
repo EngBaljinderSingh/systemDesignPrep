@@ -12,6 +12,7 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.message.SystemMessage;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +42,7 @@ public class AiConfig {
     }
 
     @Bean
-    public ChatLanguageModel siliconFlowChatLanguageModel(WebClient siliconFlowWebClient,
+    public ChatLanguageModel siliconFlowChatLanguageModel(@Qualifier("siliconFlowWebClient") WebClient siliconFlowWebClient,
                                                         @Value("${siliconflow.model}") String model) {
         log.info("Registering ChatLanguageModel bean for SiliconFlow with model={}", model);
         return messages -> {
@@ -91,7 +92,7 @@ public class AiConfig {
     @Bean
     @Primary
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public ChatLanguageModel openRouterChatLanguageModel(WebClient openRouterWebClient,
+    public ChatLanguageModel openRouterChatLanguageModel(@Qualifier("openRouterWebClient") WebClient openRouterWebClient,
                                                         @Value("${openai.model}") String model) {
         log.info("Registering ChatLanguageModel bean for OpenRouter with model={}", model);
         return messages -> {

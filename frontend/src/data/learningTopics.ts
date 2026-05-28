@@ -135,26 +135,100 @@ class NumberBox<T extends Number> {
         id: 'java-concurrency',
         name: 'Concurrency & Multithreading',
         level: 'Intermediate',
-        description: 'Threads, ExecutorService, CompletableFuture, synchronization, volatile, locks, and Java 21 Virtual Threads.',
+        description: 'Thread lifecycle & states, ExecutorService, CompletableFuture, volatile/synchronized/Atomic classes, ReentrantLock, ReadWriteLock, StampedLock, deadlock prevention, and Java 21 Virtual Threads.',
         concepts: [
+          {
+            id: 'java-thread-lifecycle',
+            name: 'Thread Lifecycle & States',
+            summary: `Every Java thread moves through 6 states defined in Thread.State:\n\n• **NEW** — created with \`new Thread()\`, not yet started.\n• **RUNNABLE** — running on CPU or ready in the run queue; JVM + OS scheduler decides.\n• **BLOCKED** — waiting to acquire a monitor lock (another thread holds it).\n• **WAITING** — indefinitely waiting: \`Object.wait()\`, \`Thread.join()\`, \`LockSupport.park()\`.\n• **TIMED_WAITING** — waiting with a deadline: \`Thread.sleep(ms)\`, \`wait(ms)\`, \`join(ms)\`.\n• **TERMINATED** — run() returned or threw an uncaught exception; cannot be restarted.\n\nTransitions:\nNEW → start() → RUNNABLE → (lock contention) → BLOCKED → (lock acquired) → RUNNABLE\nRUNNABLE → wait()/join() → WAITING → notify()/notifyAll() → RUNNABLE\nRUNNABLE → sleep()/wait(ms) → TIMED_WAITING → timeout/interrupt → RUNNABLE`,
+            codeExample: `import java.util.concurrent.locks.LockSupport;
+
+public class ThreadStatesDemo {
+  public static void main(String[] args) throws Exception {
+    Object lock = new Object();
+
+    // 1. NEW — created, not started
+    Thread t1 = new Thread(() -> {
+      synchronized (lock) { /* holds the lock */ }
+    }, "t1");
+    System.out.println(t1.getState()); // NEW
+
+    // 2. BLOCKED — t1 holds lock, t2 tries to enter same block
+    synchronized (lock) {
+      t1.start();
+      Thread.sleep(50);
+      System.out.println(t1.getState()); // BLOCKED
+    } // releases lock → t1 becomes RUNNABLE
+
+    // 3. TIMED_WAITING — sleeping
+    Thread t2 = new Thread(() -> {
+      try { Thread.sleep(10_000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+    }, "t2");
+    t2.start();
+    Thread.sleep(50);
+    System.out.println(t2.getState()); // TIMED_WAITING
+    t2.interrupt(); // wake it up early
+
+    // 4. WAITING — parked indefinitely
+    Thread t3 = new Thread(() -> LockSupport.park(), "t3");
+    t3.start();
+    Thread.sleep(50);
+    System.out.println(t3.getState()); // WAITING
+    LockSupport.unpark(t3);
+
+    t1.join();
+    System.out.println(t1.getState()); // TERMINATED
+  }
+}
+// Output (approximate):
+// NEW
+// BLOCKED
+// TIMED_WAITING
+// WAITING
+// TERMINATED`,
+            funFact: '🔍 You can inspect a live thread dump with `jstack <pid>` or via VisualVM. BLOCKED threads are a red flag — they reveal lock contention and potential deadlocks.',
+            quiz: {
+              question: 'A thread is waiting for another thread to release a synchronized block. What state is it in?',
+              options: ['WAITING', 'TIMED_WAITING', 'BLOCKED', 'RUNNABLE'],
+              answer: 2,
+              explanation: 'BLOCKED means the thread is queued waiting to acquire a monitor lock. WAITING is for Object.wait() / Thread.join() (no timeout). Both are different JVM states.',
+            },
+          },
           {
             id: 'java-executor',
             name: 'ExecutorService & Thread Pools',
-            summary: 'Never create raw Thread objects in production. Use Executors.newFixedThreadPool(), newCachedThreadPool(), or Spring\'s @Async with a configured TaskExecutor.',
-            codeExample: `// Thread pool — reuses threads, bounded concurrency
-ExecutorService pool = Executors.newFixedThreadPool(
-    Runtime.getRuntime().availableProcessors());
+            summary: `Never create raw Thread objects in production. Use the Executor framework:\n\n• **newFixedThreadPool(n)** — bounded pool, best for CPU-bound tasks (n = CPU cores).\n• **newCachedThreadPool()** — grows/shrinks dynamically, good for many short-lived I/O tasks.\n• **newSingleThreadExecutor()** — serialises all tasks; queue is unbounded.\n• **newScheduledThreadPool(n)** — for periodic/delayed tasks.\n• **newVirtualThreadPerTaskExecutor()** — Java 21+, creates a virtual thread per task.\n\nAlways shut down gracefully: shutdown() + awaitTermination(). Use ThreadFactory to name threads for easier debugging.`,
+            codeExample: `// ── Fixed pool (CPU-bound) ───────────────────────────────────
+int cpus = Runtime.getRuntime().availableProcessors();
+ExecutorService pool = Executors.newFixedThreadPool(cpus,
+    r -> new Thread(r, "worker-" + r.hashCode())); // named threads
 
-Future<String> future = pool.submit(() -> fetchDataFromAPI());
-String result = future.get(5, TimeUnit.SECONDS); // blocks with timeout
-pool.shutdown();
+Future<Integer> future = pool.submit(() -> heavyComputation(42));
+try {
+  int result = future.get(5, TimeUnit.SECONDS);
+} catch (TimeoutException e) {
+  future.cancel(true); // interrupt the task
+} finally {
+  pool.shutdown();
+  if (!pool.awaitTermination(10, TimeUnit.SECONDS)) pool.shutdownNow();
+}
 
-// Spring @Async (recommended in Spring Boot)
+// ── Scheduled tasks ──────────────────────────────────────────
+ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+// Run once after 3 seconds
+scheduler.schedule(() -> sendReminder(), 3, TimeUnit.SECONDS);
+// Run every 1 minute, starting after 0 delay
+scheduler.scheduleAtFixedRate(() -> syncCache(), 0, 1, TimeUnit.MINUTES);
+
+// ── Spring @Async (recommended in Spring Boot) ───────────────
+// application.yml:
+// spring.task.execution.pool.core-size: 8
+// spring.task.execution.pool.max-size: 64
 @Async
 public CompletableFuture<Report> generateReport(Long id) {
   return CompletableFuture.completedFuture(buildReport(id));
 }`,
-            funFact: '🚀 Java 21 introduced Project Loom\'s Virtual Threads — you can now spin up millions of threads cheaply. The JDK manages mapping them to OS threads!',
+            funFact: '🚀 Java 21 Virtual Threads let you call Executors.newVirtualThreadPerTaskExecutor() and create millions of lightweight threads — each blocking I/O call yields rather than stalls an OS thread!',
             quiz: {
               question: 'Which executor is best for CPU-bound tasks?',
               options: [
@@ -164,58 +238,229 @@ public CompletableFuture<Report> generateReport(Long id) {
                 'newScheduledThreadPool(100)',
               ],
               answer: 2,
-              explanation: 'For CPU-bound work, match thread count to available processors. More threads just add context-switching overhead.',
+              explanation: 'For CPU-bound work, match thread count to available processors. More threads just add context-switching overhead without improving throughput.',
             },
           },
           {
             id: 'java-completablefuture',
             name: 'CompletableFuture (Async Pipeline)',
-            summary: 'CompletableFuture lets you chain async steps (thenApply, thenCompose, thenCombine) without blocking. Essential for non-blocking microservices.',
-            codeExample: `CompletableFuture<OrderSummary> summary = CompletableFuture
-    .supplyAsync(() -> userService.getUser(userId))          // async fetch
-    .thenApply(user -> enrichWithLoyalty(user))              // transform
-    .thenCompose(user -> orderService.getOrders(user.id()))  // chain async
+            summary: `CompletableFuture lets you compose asynchronous steps declaratively without blocking:\n\n• **supplyAsync** — start async computation, returns value.\n• **thenApply** — transform result (like map).\n• **thenCompose** — chain another async step (like flatMap).\n• **thenCombine** — merge two independent async results.\n• **allOf / anyOf** — wait for all / first of N futures.\n• **exceptionally / handle** — error recovery.\n\nBy default uses the ForkJoinPool.commonPool(). Pass your own Executor as second arg for I/O-heavy tasks.`,
+            codeExample: `// ── Serial pipeline ──────────────────────────────────────────
+CompletableFuture<OrderSummary> summary = CompletableFuture
+    .supplyAsync(() -> userService.getUser(userId))          // async start
+    .thenApply(user -> enrichWithLoyalty(user))              // sync transform
+    .thenCompose(user -> orderService.getOrders(user.id()))  // next async step
     .thenCombine(
-        productService.getCatalogAsync(),                    // run in parallel
-        (orders, catalog) -> buildSummary(orders, catalog)  // merge results
-    )
-    .exceptionally(ex -> OrderSummary.empty());              // fallback
+        productService.getCatalogAsync(),                    // runs in parallel
+        (orders, catalog) -> buildSummary(orders, catalog)) // merge
+    .exceptionally(ex -> OrderSummary.empty());              // fallback on error
 
-OrderSummary result = summary.get(); // block only here`,
-            funFact: '🔗 CompletableFuture was added in Java 8. Before that, developers used Guava\'s ListenableFuture for async chaining!',
+// ── Fan-out: fire N tasks, collect all results ────────────────
+List<CompletableFuture<Price>> priceFutures = skuList.stream()
+    .map(sku -> CompletableFuture.supplyAsync(() -> fetchPrice(sku), ioPool))
+    .toList();
+
+CompletableFuture.allOf(priceFutures.toArray(new CompletableFuture[0]))
+    .thenApply(v -> priceFutures.stream()
+        .map(CompletableFuture::join) // safe — already done
+        .toList())
+    .thenAccept(prices -> updatePriceBoard(prices));`,
+            funFact: '🔗 CompletableFuture was added in Java 8. Before that, developers used Guava\'s ListenableFuture for async chaining — much more verbose!',
           },
           {
             id: 'java-volatile-synchronized',
-            name: 'Volatile, Synchronized & Locks',
-            summary: 'volatile ensures visibility (not atomicity). synchronized ensures both visibility and mutual exclusion. ReentrantLock adds timed/fair locking. Use java.util.concurrent.atomic for counters.',
-            codeExample: `// volatile — visibility only, for flags
-private volatile boolean running = true;
+            name: 'volatile, synchronized & Atomic Classes',
+            summary: `The Java Memory Model (JMM) allows threads to cache variables in CPU registers/L1 cache, causing stale reads — synchronisation primitives fix this:\n\n• **volatile** — flushes to main memory on write, re-reads on access. Guarantees *visibility*, NOT atomicity. Use for simple flags.\n• **synchronized** — guarantees visibility AND mutual exclusion (one thread at a time). Reentrant by default.\n• **AtomicInteger / AtomicLong / AtomicReference** — lock-free CAS (Compare-And-Swap) operations. Faster than synchronized for single-variable counters.\n• **Happens-before rule**: everything before a write to a volatile/synchronized block is visible to any subsequent reader.`,
+            codeExample: `// ── volatile: visibility flag ────────────────────────────────
+class Worker implements Runnable {
+  private volatile boolean running = true; // without volatile, JVM may cache this
 
-// synchronized — visibility + mutual exclusion
-class Counter {
-  private int count = 0;
-  synchronized void increment() { count++; } // atomic
+  public void stop() { running = false; } // another thread calls this
+
+  @Override public void run() {
+    while (running) { doWork(); } // guaranteed to see updated flag
+  }
 }
 
-// AtomicInteger — lock-free, prefer over synchronized for counters
-private AtomicInteger hits = new AtomicInteger(0);
-hits.incrementAndGet(); // thread-safe, faster than synchronized
+// ── synchronized: counter (visibility + atomicity) ───────────
+class Counter {
+  private int count = 0;
+  synchronized void increment() { count++; } // i++ is NOT atomic: read→add→write
+  synchronized int get()        { return count; }
+}
 
-// ReentrantReadWriteLock — concurrent reads, exclusive writes
-ReadWriteLock lock = new ReentrantReadWriteLock();
-lock.readLock().lock();  // multiple readers OK
-lock.writeLock().lock(); // exclusive`,
-            funFact: '⚠️ The infamous "double-checked locking" pattern was broken until Java 5 fixed the memory model. Always use volatile with it!',
+// ── AtomicInteger: lock-free CAS (preferred for counters) ────
+AtomicInteger hits = new AtomicInteger(0);
+hits.incrementAndGet();                // atomic, no lock
+hits.compareAndSet(expected, update);  // CAS — update only if current == expected
+
+// ── AtomicReference: lock-free object swap ───────────────────
+AtomicReference<Config> config = new AtomicReference<>(loadConfig());
+config.updateAndGet(old -> old.withTimeout(30)); // thread-safe object replacement`,
+            funFact: '⚠️ The infamous "double-checked locking" for lazy singletons was broken before Java 5. The fix is one word: declare the field volatile so the half-constructed object is never visible.',
             quiz: {
               question: 'What does the volatile keyword guarantee in Java?',
               options: [
                 'Atomicity of compound operations like i++',
                 'Visibility — all threads see the latest write immediately',
                 'Both atomicity and visibility',
-                'Thread safety of the whole object',
+                'Mutual exclusion (only one thread at a time)',
               ],
               answer: 1,
-              explanation: 'volatile guarantees visibility only. For atomicity of compound operations, use synchronized or AtomicInteger.',
+              explanation: 'volatile guarantees visibility only — a write is immediately flushed to main memory and all threads re-read it. For atomicity of compound operations use synchronized or AtomicInteger.',
+            },
+          },
+          {
+            id: 'java-locks',
+            name: 'ReentrantLock, ReadWriteLock & StampedLock',
+            summary: `java.util.concurrent.locks provides richer locking than synchronized:\n\n• **ReentrantLock** — same semantics as synchronized but adds: timed tryLock, interruptible lock, fair queuing.\n• **ReentrantReadWriteLock** — separates read and write locks. Multiple readers can hold the read lock simultaneously; writes are exclusive. Great for read-heavy caches.\n• **StampedLock (Java 8+)** — fastest of the three. Adds *optimistic reads*: read without locking; validate stamp afterward. If stamp is invalid (writer ran), fall back to a real read lock. Not reentrant — use with care.\n\nRule of thumb: read-write ratio 10:1 or higher → StampedLock > ReadWriteLock > synchronized.`,
+            codeExample: `import java.util.concurrent.locks.*;
+
+// ── ReentrantLock: timed + interruptible ─────────────────────
+ReentrantLock lock = new ReentrantLock();
+
+boolean acquired = lock.tryLock(500, TimeUnit.MILLISECONDS);
+if (acquired) {
+  try {
+    updateSharedState();
+  } finally {
+    lock.unlock(); // ALWAYS unlock in finally
+  }
+} else {
+  handleLockTimeout(); // avoid blocking forever
+}
+
+// ── ReentrantReadWriteLock: concurrent reads, exclusive writes ─
+class Cache<K, V> {
+  private final Map<K, V>          map  = new HashMap<>();
+  private final ReadWriteLock      rwl  = new ReentrantReadWriteLock();
+  private final Lock               r    = rwl.readLock();
+  private final Lock               w    = rwl.writeLock();
+
+  public V get(K key) {
+    r.lock();
+    try   { return map.get(key); }
+    finally { r.unlock(); }
+  }
+
+  public void put(K key, V val) {
+    w.lock();
+    try   { map.put(key, val); }
+    finally { w.unlock(); }
+  }
+}
+
+// ── StampedLock: optimistic read (no lock acquired!) ──────────
+class Point {
+  private double x, y;
+  private final StampedLock sl = new StampedLock();
+
+  // Write: exclusive stamp
+  void move(double dx, double dy) {
+    long stamp = sl.writeLock();
+    try { x += dx; y += dy; }
+    finally { sl.unlockWrite(stamp); }
+  }
+
+  // Optimistic read: no lock — just validate stamp after read
+  double distanceFromOrigin() {
+    long stamp = sl.tryOptimisticRead();  // non-blocking, gets a version stamp
+    double cx = x, cy = y;               // snapshot (might be stale)
+    if (!sl.validate(stamp)) {           // was there a write between snapshot & here?
+      stamp = sl.readLock();             // fall back to real read lock
+      try { cx = x; cy = y; }
+      finally { sl.unlockRead(stamp); }
+    }
+    return Math.sqrt(cx * cx + cy * cy);
+  }
+
+  // Upgrade: optimistic → read → write in one operation
+  void conditionalUpdate(double newX) {
+    long stamp = sl.readLock();
+    try {
+      while (x < 0) {
+        long ws = sl.tryConvertToWriteLock(stamp);
+        if (ws != 0L) { stamp = ws; x = newX; break; }
+        else { sl.unlockRead(stamp); stamp = sl.writeLock(); }
+      }
+    } finally { sl.unlock(stamp); }
+  }
+}`,
+            funFact: '⚡ StampedLock\'s optimistic read is essentially a "snapshot + version check" — the same idea used in Multiversion Concurrency Control (MVCC) in databases like PostgreSQL!',
+            quiz: {
+              question: 'What makes StampedLock\'s optimistic read faster than ReentrantReadWriteLock\'s read lock?',
+              options: [
+                'It uses CAS instead of mutexes',
+                'It does not acquire any lock — it just reads a version stamp and validates after',
+                'It uses a separate thread pool for reads',
+                'It skips volatile memory barriers entirely',
+              ],
+              answer: 1,
+              explanation: 'tryOptimisticRead() returns a stamp without blocking. You read the data, then call validate(stamp) to check no write occurred. If the stamp is invalid you fall back to a real read lock. Zero lock acquisition on the happy path.',
+            },
+          },
+          {
+            id: 'java-deadlock',
+            name: 'Deadlock, Livelock & Prevention',
+            summary: `**Deadlock** — thread A holds lock-1 and waits for lock-2; thread B holds lock-2 and waits for lock-1. Both wait forever.\n\n**Livelock** — threads keep responding to each other's actions but make no progress (two people in a corridor both stepping the same way).\n\n**Starvation** — a low-priority thread never gets CPU time because high-priority threads always preempt.\n\nPrevention strategies:\n1. **Lock ordering** — always acquire locks in the same global order.\n2. **tryLock with timeout** — back off and retry if you can't acquire within a deadline.\n3. **Lock-free data structures** — ConcurrentHashMap, CopyOnWriteArrayList, Atomic* classes.\n4. **Single-threaded access** — serialize writes through a single-threaded executor.`,
+            codeExample: `// ── DEADLOCK (broken) ────────────────────────────────────────
+Object lockA = new Object();
+Object lockB = new Object();
+
+Thread t1 = new Thread(() -> {
+  synchronized (lockA) {
+    Thread.sleep(50); // gives t2 time to grab lockB
+    synchronized (lockB) { /* never reached */ }
+  }
+});
+Thread t2 = new Thread(() -> {
+  synchronized (lockB) {
+    Thread.sleep(50);
+    synchronized (lockA) { /* never reached */ }
+  }
+});
+t1.start(); t2.start(); // DEADLOCK!
+
+// ── FIX 1: consistent lock ordering ───────────────────────────
+void transfer(Account from, Account to, int amount) {
+  Account first  = from.id() < to.id() ? from : to; // always smaller ID first
+  Account second = from.id() < to.id() ? to   : from;
+  synchronized (first) {
+    synchronized (second) {
+      from.debit(amount);
+      to.credit(amount);
+    }
+  }
+}
+
+// ── FIX 2: tryLock with timeout ───────────────────────────────
+ReentrantLock l1 = new ReentrantLock();
+ReentrantLock l2 = new ReentrantLock();
+
+boolean transfer(int amount) throws InterruptedException {
+  while (true) {
+    boolean gotL1 = l1.tryLock(50, TimeUnit.MILLISECONDS);
+    boolean gotL2 = l2.tryLock(50, TimeUnit.MILLISECONDS);
+    if (gotL1 && gotL2) {
+      try { doTransfer(amount); return true; }
+      finally { l1.unlock(); l2.unlock(); }
+    }
+    if (gotL1) l1.unlock(); // release what we have
+    if (gotL2) l2.unlock(); // then back off and retry
+    Thread.sleep(ThreadLocalRandom.current().nextInt(10)); // jitter
+  }
+}`,
+            funFact: '🔎 Detect deadlocks at runtime with ThreadMXBean: ManagementFactory.getThreadMXBean().findDeadlockedThreads() returns the IDs of all deadlocked threads — great for health-check endpoints.',
+            quiz: {
+              question: 'Which of the following strategies prevents deadlocks by design?',
+              options: [
+                'Using synchronized on every method',
+                'Always acquiring multiple locks in a consistent global order',
+                'Increasing thread priority',
+                'Using volatile fields',
+              ],
+              answer: 1,
+              explanation: 'Consistent lock ordering ensures a cycle in the wait-for graph can never form — the circular dependency required for deadlock is impossible.',
             },
           },
         ],
@@ -310,47 +555,94 @@ try (ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()) {
         id: 'java-jvm',
         name: 'JVM & Garbage Collection',
         level: 'Intermediate',
-        description: 'How the JVM manages memory, the generational heap model, GC algorithms, and how to tune them.',
+        description: 'JVM memory areas, class loading, JIT compilation, GC algorithms (G1, ZGC), heap tuning flags, and avoiding memory leaks.',
         concepts: [
           {
+            id: 'java-jvm-memory',
+            name: 'JVM Memory Architecture',
+            summary: `The JVM partitions memory into several areas:\n\n• **Heap** — all objects live here; shared by all threads; managed by GC. Split into Young Gen (Eden + Survivors) and Old Gen.\n• **Metaspace** (Java 8+, replaces PermGen) — class metadata, method bytecode, interned strings. Grows on-demand off-heap. Cap with \`-XX:MaxMetaspaceSize\`.\n• **Thread Stacks** — each thread has its own stack of frames (local vars, operand stack, return address). Default ~512 KB–1 MB per thread. OOM = StackOverflowError.\n• **Code Cache** — stores JIT-compiled native machine code. Runs out → JVM deoptimises back to interpreted mode.\n• **Direct / Off-Heap** — NIO ByteBuffer.allocateDirect(), mapped files. Not GC-managed; freed explicitly or via Cleaner.\n\n**JIT (Just-In-Time) Compilation** — the JVM starts interpreting bytecode, then the JIT compiler (C1/C2) detects hot methods and compiles them to native machine code. Tiered compilation (Java 7+) uses both C1 (fast compile) and C2 (aggressive optimise).`,
+            codeExample: `// ── Useful JVM diagnostic flags ─────────────────────────────
+// -XX:+PrintFlagsFinal              print all JVM flags and their values
+// -XX:NativeMemoryTracking=summary  track off-heap usage (jcmd <pid> VM.native_memory)
+// -XX:+UnlockDiagnosticVMOptions -XX:+PrintCompilation   see JIT decisions
+// -XX:+LogCompilation                                      XML log of all compilations
+// -XX:CompileThreshold=10000       calls before method is JIT-compiled (default)
+
+// ── Check heap usage at runtime ──────────────────────────────
+MemoryMXBean mem = ManagementFactory.getMemoryMXBean();
+MemoryUsage heap = mem.getHeapMemoryUsage();
+System.out.printf("Heap used: %d MB / max: %d MB%n",
+    heap.getUsed() / 1_048_576,
+    heap.getMax()  / 1_048_576);
+
+// ── Metaspace leak example (classloaders) ────────────────────
+// Dynamically generated classes (Groovy scripts, CGLIB proxies) each
+// consume Metaspace. Leaking ClassLoader references = Metaspace OOM.
+// Fix: weak-reference ClassLoaders, or use a ClassLoader pool.
+
+// ── Thread stack sizing ──────────────────────────────────────
+// -Xss256k   reduce stack per thread (useful with many virtual threads)
+// Default on 64-bit JVM: ~512 KB per platform thread
+
+// ── Code cache ───────────────────────────────────────────────
+// -XX:ReservedCodeCacheSize=256m   (default ~48–240 MB depending on JVM)
+// Monitor: jconsole → Memory → Code Cache`,
+            funFact: '🔥 The JIT compiler can inline, unroll loops, and eliminate dead code — so a Java "for" loop over a list can actually run faster than a hand-written C loop because the JIT has runtime profile data the C compiler never had!',
+            quiz: {
+              question: 'Where does Java class metadata (method bytecode, field descriptors) live in Java 8+?',
+              options: ['Heap Old Gen', 'Heap Eden', 'Metaspace (off-heap)', 'Thread stack'],
+              answer: 2,
+              explanation: 'Java 8 replaced the fixed-size PermGen with Metaspace, which lives off-heap and grows on demand. This eliminated the common "java.lang.OutOfMemoryError: PermGen space" error.',
+            },
+          },
+          {
             id: 'java-gc',
-            name: 'Garbage Collector',
-            summary: `The JVM automatically reclaims heap memory for objects that are no longer reachable — no manual free(). The heap is split into generations:\n\n• **Young Gen (Eden + S0/S1)** — short-lived objects. Minor GC runs frequently and is fast.\n• **Old Gen (Tenured)** — objects that survived several Minor GCs get promoted here. Major/Full GC is slower.\n• **Metaspace** (Java 8+) — class metadata; lives off-heap.\n\nGC algorithms:\n| Collector | Flag | Best for |\n|-----------|------|----------|\n| Serial | -XX:+UseSerialGC | single-core, small heaps |\n| Parallel | -XX:+UseParallelGC | throughput-first batch jobs |\n| G1 (default Java 9+) | -XX:+UseG1GC | balanced latency & throughput |\n| ZGC | -XX:+UseZGC | sub-millisecond pauses, Java 15+ |\n| Shenandoah | -XX:+UseShenandoahGC | ultra-low pause, Red Hat |\n\nCommon STW (Stop-The-World) — all GCs pause app threads briefly during certain phases.`,
-            codeExample: `// ── Heap flags ──────────────────────────────────
-// -Xms512m   initial heap size
-// -Xmx2g     max heap size
-// -XX:+UseG1GC                  use G1 (default Java 9+)
-// -XX:MaxGCPauseMillis=200      G1 pause target
-// -XX:+UseZGC                   ZGC — sub-ms pauses (Java 15+)
+            name: 'Garbage Collectors & Heap Tuning',
+            summary: `The JVM uses **reachability** to decide what to collect. An object is *live* if it is reachable from a GC root (static fields, active thread stacks, JNI refs). Unreachable objects are garbage.\n\n**Generational hypothesis**: most objects die young. The heap is split:\n- **Eden** → new objects allocated here.\n- **Survivor S0/S1** → objects that survive one or more Minor GCs bounce between these.\n- **Old Gen** → objects that survive ≥ tenuring threshold (default 15 GC cycles) get promoted.\n- **Minor GC** — collects Young Gen only; fast (ms range); STW pause.\n- **Major/Full GC** — collects Old Gen + Young Gen; slow (100 ms – seconds); STW.\n\n| Collector | Flag | Pause | Best for |\n|-----------|------|-------|----------|\n| Serial | -XX:+UseSerialGC | STW | single-core, <256 MB heaps |\n| Parallel (Throughput) | -XX:+UseParallelGC | STW | batch jobs, max throughput |\n| **G1** (default Java 9+) | -XX:+UseG1GC | low STW | balanced: web services |\n| **ZGC** | -XX:+UseZGC | <1 ms | large heaps, latency-critical |\n| Shenandoah | -XX:+UseShenandoahGC | <1 ms | ultra-low pause (Red Hat) |\n\n**G1 detail**: divides heap into ~2 MB regions; collects highest-garbage regions first (hence "Garbage First"). Concurrent marking runs alongside app threads.`,
+            codeExample: `// ── Heap size flags ──────────────────────────────────────────
+// -Xms512m                  initial heap (avoid resizing — set = Xmx in prod)
+// -Xmx4g                    max heap
+// -XX:NewRatio=2             Old:Young ratio = 2:1 (Young = 1/3 of heap)
+// -XX:SurvivorRatio=8        Eden:Survivor = 8:1 (Eden = 8/10 of Young)
+// -XX:MaxTenuringThreshold=15 promotions to Old Gen after 15 GC cycles
 
-// ── Generational flow ────────────────────────────
-// new Object() → Eden
-//   ↓ Minor GC (survives)
-// Survivor S0/S1 (age++)
-//   ↓ age ≥ 15 (default)
-// Old Gen (Tenured)
-//   ↓ Old Gen full → Full GC (slow!)
+// ── G1 tuning ────────────────────────────────────────────────
+// -XX:+UseG1GC
+// -XX:MaxGCPauseMillis=100   target pause (G1 tries to honour this)
+// -XX:G1HeapRegionSize=4m    region size 1–32 MB (power of 2)
+// -XX:G1NewSizePercent=20    min Young Gen as % of heap
+// -XX:G1MaxNewSizePercent=60 max Young Gen as % of heap
 
-// ── Avoid memory leaks ───────────────────────────
-// 1. Static collections holding references
-static Map<String, byte[]> cache = new HashMap<>(); // ⚠ grows forever
+// ── ZGC (Java 15+ production ready) ─────────────────────────
+// -XX:+UseZGC -XX:+ZGenerational   (generational ZGC, Java 21)
+// No tuning needed — ZGC is self-tuning. Just set -Xmx.
 
-// 2. Use WeakReference for caches — GC can collect the value
-Map<String, WeakReference<ExpensiveObject>> safeCache = new WeakHashMap<>();
+// ── GC logging (essential in production) ─────────────────────
+// -Xlog:gc*:file=gc.log:time,uptime:filecount=5,filesize=20m
+// Parse with: https://gceasy.io
 
-// 3. Always close resources (try-with-resources)
-try (InputStream in = new FileInputStream("file.txt")) {
-  // in is closed automatically — no heap/native leak
-}
+// ── Avoid the most common memory leaks ───────────────────────
+// 1. Static caches that grow forever
+static final Map<String, byte[]> BAD_CACHE = new HashMap<>(); // ⚠
 
-// ── Read GC logs (Java 11+) ──────────────────────
-// -Xlog:gc*:file=gc.log:time,uptime:filecount=5,filesize=10m`,
-            funFact: '🗑️ The G1 collector (Garbage First) divides the heap into equal-sized regions (~2 MB each) and always collects the regions with the most garbage first — that\'s where the name comes from!',
+// 2. WeakHashMap lets GC collect values when keys are unreachable
+Map<Key, Value> weakCache = new WeakHashMap<>();
+
+// 3. Always close resources — try-with-resources prevents native leaks
+try (InputStream in = Files.newInputStream(path)) {
+  process(in);
+} // in.close() called automatically even on exception
+
+// 4. Listener/observer leaks — deregister when done
+eventBus.register(this);
+// later:
+eventBus.unregister(this); // or your object is pinned via the listener list`,
+            funFact: '🗑️ G1 (Garbage First) gets its name because it always picks the heap regions with the most garbage to collect first — maximising reclamation per pause millisecond. ZGC does almost all its work concurrently, so pause times stay <1 ms even on 1 TB heaps!',
             quiz: {
               question: 'An object created with `new` first lands in which heap region?',
-              options: ['Old Gen', 'Metaspace', 'Eden (Young Gen)', 'Survivor S1'],
+              options: ['Old Gen (Tenured)', 'Metaspace', 'Eden (Young Gen)', 'Survivor S1'],
               answer: 2,
-              explanation: 'All newly allocated objects start in Eden. If they survive a Minor GC they are copied to a Survivor space, and after enough GC cycles they are promoted to Old Gen.',
+              explanation: 'All newly allocated objects start in Eden. Surviving Minor GCs copy them to a Survivor space (S0↔S1). After enough cycles (default 15) they are promoted to Old Gen.',
             },
           },
         ],

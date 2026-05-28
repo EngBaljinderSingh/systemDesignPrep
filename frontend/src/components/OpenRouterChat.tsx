@@ -114,7 +114,7 @@ export default function OpenRouterChat() {
         <div className="fixed bottom-6 right-6 z-50 w-96 bg-white dark:bg-gray-900 shadow-2xl rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col" style={{ minHeight: 420, maxHeight: 520 }}>
           {/* Header with Close Icon */}
           <div className="flex items-center justify-between px-4 py-2 bg-blue-600 text-white rounded-t-xl">
-            <span className="font-bold text-lg">OpenRouter Chat</span>
+            <span className="font-bold text-lg">SDP AI</span>
             <button
               className="ml-2 p-1 rounded-full hover:bg-blue-700 focus:outline-none"
               onClick={() => setIsOpen(false)}
