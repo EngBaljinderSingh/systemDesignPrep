@@ -16,6 +16,7 @@ import HackerRankPage from './pages/HackerRankPage';
 import MockInterviewPage from './pages/MockInterviewPage';
 import { ThemeProvider, useTheme } from './ThemeContext';
 import ResumePage from './pages/ResumePage';
+import HLDCaseStudiesPage from './pages/HLDCaseStudiesPage';
 
 function AppContent() {
   const { theme } = useTheme();
@@ -36,6 +37,7 @@ function AppContent() {
               <Route path="/" element={<HomePage />} />
               <Route path="/algorithms" element={<AlgorithmPatternsPage />} />
               <Route path="/system-design" element={<SystemDesignPatternsPage />} />
+              <Route path="/hld-case-studies" element={<HLDCaseStudiesPage />} />
               <Route path="/design-patterns" element={<DesignPatternsPage />} />
               <Route path="/learning" element={<LearningHubPage />} />
               <Route path="/problems" element={<ProblemsPage />} />

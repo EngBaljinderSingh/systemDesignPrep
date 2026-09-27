@@ -8,6 +8,7 @@ const links = [
   { to: '/design-patterns',    label: 'Design Patterns',   icon: '🏛️'             },
   { to: '/algorithms',         label: 'Algo Patterns',     icon: '📊'             },
   { to: '/system-design',      label: 'System Design',     icon: '🏗️'             },
+  { to: '/hld-case-studies',    label: 'HLD Case Studies',  icon: '📐'             },
   { to: '/problems',           label: 'Problems',          icon: '💡'             },
   { to: '/hackerrank',         label: 'HackerRank',        icon: '🏆'             },
   { to: '/interview-questions',label: 'Interview Q&A',     icon: '💬'             },
