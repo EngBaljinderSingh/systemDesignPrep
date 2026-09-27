@@ -25,6 +25,7 @@ export interface HLDCaseStudy {
   title: string;
   icon: string;
   tagline: string;
+  diagramImage: string;  // path relative to /public
   functionalReqs: string[];
   nonFunctionalReqs: string[];
   components: HLDComponent[];
@@ -75,6 +76,7 @@ export const hldCaseStudies: HLDCaseStudy[] = [
     title: 'WhatsApp',
     icon: '💬',
     tagline: 'Real-time messaging at 100M DAU with persistent WebSocket connections',
+    diagramImage: '/hld-whatsapp.jpg',
     functionalReqs: [
       'One-on-One Real-Time Messaging',
       'Message Delivery Status & Receipts',
@@ -160,6 +162,7 @@ export const hldCaseStudies: HLDCaseStudy[] = [
     title: 'Rate Limiter',
     icon: '🚦',
     tagline: 'Distributed rate limiting at 58K avg QPS / 116K peak QPS using Redis',
+    diagramImage: '/hld-ratelimiter.jpg',
     functionalReqs: [
       'Granular Identity-Based Limiting (user/IP/API key)',
       'Configurable Rule Engine (per route, per user tier)',
@@ -244,6 +247,7 @@ export const hldCaseStudies: HLDCaseStudy[] = [
     title: 'BookMyShow',
     icon: '🎬',
     tagline: 'High-consistency seat booking with distributed locks at 50K peak QPS',
+    diagramImage: '/hld-bookmyshow.jpg',
     functionalReqs: [
       'Catalog & Show Search (movies, showtimes, venues)',
       'Temporary Seat Locking (10-minute hold)',

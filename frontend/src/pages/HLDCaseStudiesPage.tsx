@@ -76,6 +76,19 @@ function CaseStudyDetail({ cs }: { cs: HLDCaseStudy }) {
         </div>
       </div>
 
+      {/* Architecture Diagram */}
+      <div className="border border-gray-700 rounded-xl overflow-hidden">
+        <div className="bg-white/5 px-4 py-2 border-b border-gray-700 flex items-center gap-2">
+          <span className="text-sm font-semibold text-white">🏗️ Architecture Diagram</span>
+          <span className="text-xs text-gray-500">— from System Design PPT</span>
+        </div>
+        <img
+          src={cs.diagramImage}
+          alt={`${cs.title} HLD Architecture Diagram`}
+          className="w-full object-contain bg-black"
+        />
+      </div>
+
       {/* Scale metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {cs.scaleMetrics.map((m, i) => (
