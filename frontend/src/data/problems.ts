@@ -469,37 +469,41 @@ export const problems: Problem[] = [
 
   {
     id: 'paypay-denomination-breakdown',
-    title: 'Song Denomination Breakdown (PayPay)',
+    title: 'Song & Animation Breakdown (PayPay)',
     difficulty: 'Medium',
     patterns: ['dynamic-programming'],
     tags: ['Greedy', 'DP', 'Hash Map', 'Interview'],
     description:
-      'You are given named coin denominations: A=100, B=150, C=250, D=170. ' +
-      'Given an array of target amounts, find the FIRST target amount that can be ' +
-      'formed using those denominations (i.e. is reachable), and return the ' +
-      'denomination breakdown showing how many of each coin is used.\n\n' +
+      'You are given songs, each made of a fixed number of animations:\n' +
+      '  A = 100 animations\n' +
+      '  B = 150 animations\n' +
+      '  C = 250 animations\n' +
+      '  D = 1  animation\n\n' +
+      'Given an array of target animation counts, find the FIRST target that can be ' +
+      'formed exactly by combining whole songs, and return how many of each song is used.\n\n' +
       'Approach:\n' +
-      '1. For each target in the array, run a greedy largest-first pass over ' +
-      'denominations sorted descending.\n' +
-      '2. The first target for which the greedy covers the total exactly is your answer.\n' +
-      '3. Return the count per denomination, e.g. A:1, B:0, C:0, D:0 for target 100.',
+      '1. For each target in the array, try to form it using greedy (largest song first).\n' +
+      '2. The first target that can be formed exactly is your answer.\n' +
+      '3. Return the count per song, e.g. A:1, B:0, C:0, D:0 for target 100.\n\n' +
+      'Note: Since D=1, any positive integer is reachable (fill remainder with D songs).\n' +
+      'The interesting constraint is minimising total songs used.',
     hints: [
-      'Sort denominations descending: C=250, D=170, B=150, A=100',
-      'For each target, greedily subtract the largest denomination that fits',
-      'If remainder reaches 0 the target is reachable — stop and return counts',
-      'If no denomination fits and remainder > 0 the target is not reachable — try next',
-      'Edge: denominations may not cleanly divide every target (e.g. 30 is not reachable with only these coins)',
+      'Sort songs by animation count descending: C=250, B=150, A=100, D=1',
+      'Greedily use as many of the largest song as possible without exceeding target',
+      'D=1 means any remainder can always be filled — every target is reachable',
+      'The challenge is finding the MINIMUM total songs (greedy works here)',
+      'Iterate through the targets array and return the breakdown for the first match',
     ],
     examples: [
       {
-        input: 'denominations = {A:100, B:150, C:250, D:170}, targets = [100, 30, 10]',
-        output: '100 → A:1, B:0, C:0, D:0',
-        explanation: '100 is the first reachable target. 30 and 10 cannot be formed.',
+        input: 'songs = {A:100, B:150, C:250, D:1}, targets = [100, 30, 10]',
+        output: 'First reachable: 100 → A:1, B:0, C:0, D:0',
+        explanation: '100 = 1×A. Target 100 is the first in the array and is reachable.',
       },
       {
-        input: 'denominations = {A:100, B:150, C:250, D:170}, targets = [420, 100]',
-        output: '420 → A:0, B:0, C:1, D:1',
-        explanation: '420 = 250 + 170. The breakdown is C:1, D:1.',
+        input: 'songs = {A:100, B:150, C:250, D:1}, targets = [275]',
+        output: '275 → A:0, B:0, C:1, D:25',
+        explanation: '275 = 1×C(250) + 25×D(1). Greedy takes largest song first.',
       },
     ],
   },
