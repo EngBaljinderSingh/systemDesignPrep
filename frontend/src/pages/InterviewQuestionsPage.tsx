@@ -22,6 +22,7 @@ const TECHNOLOGIES: Technology[] = [
   'Puzzles',
   'Coding',
   'System Design',
+  'Hiring Manager',
 ];
 
 const EXPERIENCES: ExperienceLevel[] = ['Junior', 'Mid', 'Senior'];
@@ -43,6 +44,7 @@ const TECH_COLOR: Record<Technology, string> = {
   Puzzles:                'bg-lime-500/15 text-lime-300 border-lime-500/30',
   Coding:                 'bg-violet-500/15 text-violet-300 border-violet-500/30',
   'System Design':        'bg-pink-500/15 text-pink-300 border-pink-500/30',
+  'Hiring Manager':       'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30',
 };
 
 const EXP_COLOR: Record<ExperienceLevel, string> = {

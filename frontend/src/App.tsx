@@ -1,7 +1,9 @@
 import OpenRouterChat from './components/OpenRouterChat';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useState } from 'react';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
+import CampaignPage from './pages/CampaignPage';
 import AlgorithmPatternsPage from './pages/AlgorithmPatternsPage';
 import SystemDesignPatternsPage from './pages/SystemDesignPatternsPage';
 import DesignPatternsPage from './pages/DesignPatternsPage';
@@ -17,27 +19,36 @@ import ResumePage from './pages/ResumePage';
 
 function AppContent() {
   const { theme } = useTheme();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   return (
     <BrowserRouter>
-      <div className={`h-screen flex flex-col bg-surface ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
-        <Navbar />
-        <main className="flex-1 overflow-auto">
-          <OpenRouterChat />
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/algorithms" element={<AlgorithmPatternsPage />} />
-            <Route path="/system-design" element={<SystemDesignPatternsPage />} />
-            <Route path="/design-patterns" element={<DesignPatternsPage />} />
-            <Route path="/learning" element={<LearningHubPage />} />
-            <Route path="/problems" element={<ProblemsPage />} />
-            <Route path="/code" element={<CodeEditorPage />} />
-            <Route path="/canvas" element={<CanvasPage />} />
-            <Route path="/interview-questions" element={<InterviewQuestionsPage />} />
-            <Route path="/mock-interview" element={<MockInterviewPage />} />
-            <Route path="/hackerrank" element={<HackerRankPage />} />
-            <Route path="/resume" element={<ResumePage />} />
-          </Routes>
-        </main>
+      <div className={`h-screen flex bg-surface ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
+        <Navbar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(prev => !prev)} />
+        {/* Offset for the fixed sidebar */}
+        <div
+          className="flex-1 flex flex-col overflow-hidden transition-all duration-200"
+          style={{ marginLeft: sidebarOpen ? '224px' : '56px' }}
+        >
+          <main className="flex-1 overflow-auto">
+            <OpenRouterChat />
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/algorithms" element={<AlgorithmPatternsPage />} />
+              <Route path="/system-design" element={<SystemDesignPatternsPage />} />
+              <Route path="/design-patterns" element={<DesignPatternsPage />} />
+              <Route path="/learning" element={<LearningHubPage />} />
+              <Route path="/problems" element={<ProblemsPage />} />
+              <Route path="/code" element={<CodeEditorPage />} />
+              <Route path="/canvas" element={<CanvasPage />} />
+              <Route path="/interview-questions" element={<InterviewQuestionsPage />} />
+              <Route path="/mock-interview" element={<MockInterviewPage />} />
+              <Route path="/hackerrank" element={<HackerRankPage />} />
+              <Route path="/resume" element={<ResumePage />} />
+              <Route path="/campaign" element={<CampaignPage />} />
+            </Routes>
+          </main>
+        </div>
       </div>
     </BrowserRouter>
   );

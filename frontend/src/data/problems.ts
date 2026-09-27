@@ -464,4 +464,133 @@ export const problems: Problem[] = [
     ],
     leetcodeNumber: 212,
   },
+
+  // ── PayPay Interview Questions ────────────────────────────────────────────
+
+  {
+    id: 'paypay-denomination-breakdown',
+    title: 'Song Denomination Breakdown (PayPay)',
+    difficulty: 'Medium',
+    patterns: ['dynamic-programming'],
+    tags: ['Greedy', 'DP', 'Hash Map', 'Interview'],
+    description:
+      'You are given named coin denominations: A=100, B=150, C=250, D=170. ' +
+      'Given an array of target amounts, find the FIRST target amount that can be ' +
+      'formed using those denominations (i.e. is reachable), and return the ' +
+      'denomination breakdown showing how many of each coin is used.\n\n' +
+      'Approach:\n' +
+      '1. For each target in the array, run a greedy largest-first pass over ' +
+      'denominations sorted descending.\n' +
+      '2. The first target for which the greedy covers the total exactly is your answer.\n' +
+      '3. Return the count per denomination, e.g. A:1, B:0, C:0, D:0 for target 100.',
+    hints: [
+      'Sort denominations descending: C=250, D=170, B=150, A=100',
+      'For each target, greedily subtract the largest denomination that fits',
+      'If remainder reaches 0 the target is reachable — stop and return counts',
+      'If no denomination fits and remainder > 0 the target is not reachable — try next',
+      'Edge: denominations may not cleanly divide every target (e.g. 30 is not reachable with only these coins)',
+    ],
+    examples: [
+      {
+        input: 'denominations = {A:100, B:150, C:250, D:170}, targets = [100, 30, 10]',
+        output: '100 → A:1, B:0, C:0, D:0',
+        explanation: '100 is the first reachable target. 30 and 10 cannot be formed.',
+      },
+      {
+        input: 'denominations = {A:100, B:150, C:250, D:170}, targets = [420, 100]',
+        output: '420 → A:0, B:0, C:1, D:1',
+        explanation: '420 = 250 + 170. The breakdown is C:1, D:1.',
+      },
+    ],
+  },
+
+  {
+    id: 'paypay-rotting-trees',
+    title: 'Rotting Trees — Count After N Days (PayPay)',
+    difficulty: 'Medium',
+    patterns: ['bfs'],
+    tags: ['BFS', 'Matrix', 'Multi-source BFS', 'Interview'],
+    description:
+      'You are given a grid of trees where each cell is 0 (empty), 1 (fresh), or 2 (rotten). ' +
+      'Every day, each rotten tree spreads rot to its 4-directional neighbours. ' +
+      'Given the number of days D, return the total count of rotten trees after exactly D days.\n\n' +
+      'Note: Unlike the classic LeetCode 994 ("minimum days to rot all"), here you are ' +
+      'given a fixed number of days D and must report how many trees are rotten at that ' +
+      'point — fresh trees that were never reached remain fresh.\n\n' +
+      'Approach:\n' +
+      '1. Multi-source BFS: seed queue with all initially-rotten cells (value 2).\n' +
+      '2. Run BFS level by level; each level = 1 day.\n' +
+      '3. Stop after D levels and count all rotten cells.',
+    hints: [
+      'Seed the BFS queue with every cell that starts as 2 (rotten)',
+      'Process level-by-level — each level represents one day passing',
+      'Stop expanding after D levels, even if fresh trees remain',
+      'Count all cells with value 2 after simulation completes',
+      'Use a visited / in-queue marker to avoid re-adding cells',
+    ],
+    examples: [
+      {
+        input: 'grid = [[2,1,1],[1,1,0],[0,1,1]], days = 2',
+        output: '5',
+        explanation:
+          'Day 0: rotten={[0,0]}. Day 1: [0,1],[1,0] rot → 3 rotten. Day 2: [0,2],[1,1] rot → 5 rotten.',
+      },
+      {
+        input: 'grid = [[2,1,1],[1,1,0],[0,1,1]], days = 4',
+        output: '7',
+        explanation: 'All reachable fresh trees (7 total) are rotten after 4 days.',
+      },
+      {
+        input: 'grid = [[0,2]], days = 3',
+        output: '1',
+        explanation: 'Only one tree and it is already rotten at day 0.',
+      },
+    ],
+    leetcodeNumber: 994,
+  },
+
+  {
+    id: 'paypay-expression-validator',
+    title: 'Expression Validator: a sign b = c (PayPay)',
+    difficulty: 'Easy',
+    patterns: ['two-pointers'],
+    tags: ['Math', 'String Parsing', 'Interview'],
+    description:
+      'Given four inputs — two integers a and b, an operator sign (+, -, *, /), and a ' +
+      'result c — determine whether the expression "a sign b = c" holds true.\n\n' +
+      'Rules:\n' +
+      '- sign is one of: +, -, *, /\n' +
+      '- For division (/), use integer division (truncate toward zero), same as Java / Python int division\n' +
+      '- If sign is / and b = 0, return false (division by zero is invalid)\n' +
+      '- All values a, b, c are integers\n\n' +
+      'Return true if a sign b equals c, false otherwise.',
+    hints: [
+      'Parse the sign character and apply the corresponding operation',
+      'For division, truncate toward zero: Math.trunc(a / b) in JavaScript',
+      'Guard against division by zero before evaluating',
+      'Direct comparison: compute result and check === c',
+    ],
+    examples: [
+      {
+        input: 'a = 10, sign = "+", b = 5, c = 15',
+        output: 'true',
+        explanation: '10 + 5 = 15 ✓',
+      },
+      {
+        input: 'a = 10, sign = "-", b = 3, c = 8',
+        output: 'false',
+        explanation: '10 - 3 = 7, not 8.',
+      },
+      {
+        input: 'a = 7, sign = "/", b = 2, c = 3',
+        output: 'true',
+        explanation: 'Integer division: 7 / 2 = 3 (truncated) ✓',
+      },
+      {
+        input: 'a = 5, sign = "/", b = 0, c = 0',
+        output: 'false',
+        explanation: 'Division by zero is invalid.',
+      },
+    ],
+  },
 ];

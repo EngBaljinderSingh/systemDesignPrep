@@ -15,7 +15,8 @@ export type Technology =
   | 'Frameworks & Patterns'
   | 'Puzzles'
   | 'Coding'
-  | 'System Design';
+  | 'System Design'
+  | 'Hiring Manager';
 
 export interface InterviewQuestion {
   id: string;
@@ -1734,5 +1735,43 @@ export const interviewQuestions: InterviewQuestion[] = [
     question: 'What is the difference between imperative and declarative programming?',
     answer:
       'Imperative: you describe HOW to do something — step by step instructions, state mutations (for loops, if statements). Example: classic Java for-loop. Declarative: you describe WHAT you want — the how is abstracted away. Examples: SQL (`SELECT * FROM users WHERE age > 30`), Stream API (`.filter().map().collect()`), React JSX, HTML. Declarative code is usually more concise and easier to reason about; the engine figures out the implementation details.',
+  },
+
+  // ── HIRING MANAGER / LEADERSHIP ───────────────────────────────────────────
+  {
+    id: 'hm-1',
+    technology: 'Hiring Manager',
+    experience: ['Mid', 'Senior'],
+    tags: ['Database', 'Performance', 'Reporting'],
+    question: 'How do you fetch 1 million records from a DB and then generate a report from them?',
+    answer:
+      'Fetching 1 million records at once causes OutOfMemory (OOM) errors and blocks DB connections. **1. Fetching**: Use chunking or streaming. Use Keyset Pagination (`WHERE id > last_id LIMIT 10000`) or Database Cursors (like JDBC `setFetchSize()`) to stream records into application memory in small batches. **2. Reporting**: Do not block the API thread. Return an HTTP 202 Accepted with a "Job ID". Process the report asynchronously in a background worker (e.g., Spring Batch). Stream the processed CSV/Excel output directly to an object storage bucket (like AWS S3) via multipart upload. Notify the user via email or WebSocket when the download link is ready.',
+  },
+  {
+    id: 'hm-2',
+    technology: 'Hiring Manager',
+    experience: ['Mid', 'Senior'],
+    tags: ['Best Practices', 'Production', 'CI/CD'],
+    question: 'How do you manage and ensure your code is production-ready?',
+    answer:
+      'Production readiness requires strict quality gates and observability: **1. Testing**: High coverage across Unit, Integration, and E2E tests. **2. Automations**: Non-negotiable CI/CD pipelines for automated building, testing, linting (e.g., SonarQube), and security scanning. **3. Code Quality**: Mandatory peer code reviews via Pull Requests. **4. Observability**: Proper structured logging, distributed tracing, and metrics (Prometheus/Grafana) to quickly detect anomalies. **5. Resilience**: Implement Retries, Circuit Breakers (Resilience4j), and timeouts to handle downstream failures gracefully.',
+  },
+  {
+    id: 'hm-3',
+    technology: 'Hiring Manager',
+    experience: ['Mid', 'Senior'],
+    tags: ['Deployment', 'Scalability', 'DevOps'],
+    question: 'How do you handle the deployment of a new feature and how do you scale it up and down?',
+    answer:
+      '**Deployment**: Use Zero-Downtime strategies like Blue/Green or Canary deployments (roll out to 5% of traffic, monitor, then 100%). Use **Feature Flags** to decouple deployment from release, allowing instant disabling of a buggy feature without a full rollback. **Scaling**: Rely on containerization (Docker/Kubernetes). Configure Horizontal Pod Autoscalers (HPA) or Auto-scaling Groups to scale horizontally (add instances) dynamically based on CPU/Memory usage thresholds (e.g., 70%) or custom metrics like queue length. Configure smooth scale-down logic during off-peak hours to save costs.',
+  },
+  {
+    id: 'hm-4',
+    technology: 'Hiring Manager',
+    experience: ['Junior', 'Mid', 'Senior'],
+    tags: ['Soft Skills', 'Stakeholder Management', 'Agile'],
+    question: 'How do you inform stakeholders about new changes or features?',
+    answer:
+      '**1. Non-Technical Updates**: Provide business-centric release notes explaining the "why", the business value added, and any known limitations. **2. Demos**: Regularly showcase working software during Sprint Reviews to align expectations early. **3. Metrics**: Share product analytics dashboards (e.g., Tableau/Grafana) showing user adoption of the new feature. **4. Incident Communication**: If a deployment fails, communicate proactively via established channels (Slack/Email) with impact scope, ETA to fix, and follow up the next day with a transparent Root Cause Analysis (RCA).',
   },
 ];
