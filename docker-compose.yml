@@ -126,6 +126,11 @@ services:
       - piston-data:/piston/packages
     ports:
       - "2000:2000"
+    environment:
+      # Java JVM cold-start is slow — increase compile + run timeouts (ms)
+      PISTON_COMPILE_TIMEOUT: "30000"
+      PISTON_RUN_TIMEOUT: "15000"
+      PISTON_MAX_PROCESS_COUNT: "64"
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:2000/api/v2/runtimes', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
       interval: 15s
@@ -134,6 +139,7 @@ services:
       start_period: 30s
     networks:
       - sdp-network
+
 
   # Installs language runtimes into Piston on first start
   piston-init:

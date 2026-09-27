@@ -51,11 +51,121 @@ const COUNTRIES = [
 
 // Countries for the dedicated export tab (matching Python generator + country-specific notes)
 const EXPORT_COUNTRIES = [
-  { value: 'Canada',         label: '🇨🇦 Canada',       note: 'ATS-optimized · PR/work-permit note' },
-  { value: 'United Kingdom', label: '🇬🇧 UK',            note: 'CV format · formal British English' },
-  { value: 'Japan',          label: '🇯🇵 Japan',          note: 'Shokumukeirekisho · kaizen tone' },
   { value: 'ATS',            label: '📄 ATS Resume',     note: 'Universal · keyword-rich · clean' },
+  { value: 'Canada',         label: '🇨🇦 Canada',       note: 'ATS-optimized · PR/work-permit note' },
+  { value: 'United Kingdom', label: '🇬🇧 UK / Glasgow / London', note: 'CV format · formal British English · UK Skilled Worker Visa' },
+  { value: 'Netherlands',    label: '🇳🇱 Netherlands / Amsterdam', note: 'Kennismigrant ready · GDPR consent footer' },
+  { value: 'Germany',        label: '🇩🇪 Germany',         note: 'EU Blue Card · BDSG consent · German A1 note' },
+  { value: 'Ireland',        label: '🇮🇪 Ireland / Dublin',   note: 'CSEP eligible · Irish Data Protection Act' },
+  { value: 'Finland',        label: '🇫🇮 Finland',          note: 'Fast Track Specialist Permit · Finnish GDPR' },
+  { value: 'Sweden',         label: '🇸🇪 Sweden',           note: 'Highly Qualified Workers permit · Swedish GDPR' },
+  { value: 'Switzerland',    label: '🇨🇭 Switzerland',       note: 'B/L Quota · FADP consent' },
+  { value: 'Luxembourg',     label: '🇱🇺 Luxembourg',       note: 'EU Blue Card · financial sector focus' },
+  { value: 'France',         label: '🇫🇷 France / Paris',     note: 'Talent Passport · French A1 note · French GDPR' },
+  { value: 'Japan',          label: '🇯🇵 Japan (English)',   note: 'Shokumukeirekisho · kaizen tone' },
 ];
+
+// ── Pre-filled data for Baljinder Singh (matches generate_country_resumes.py) ────
+const BALJINDER_PRESET: ResumeFormData = {
+  fullName: 'Baljinder Singh',
+  email: 'contact@baljindersingh.dev',
+  phone: '+91 98158 11510',
+  linkedIn: 'linkedin.com/in/engbsingh',
+  github: 'github.com/EngBaljinderSingh',
+  website: 'https://baljindersingh.dev',
+  country: 'United States',
+  pages: 2,
+  oldResume: '',
+  summary:
+    'Lead Full Stack Software Engineer with 10 years building and scaling enterprise SaaS platforms. ' +
+    'Expert in Java 17/Spring Boot backends, Angular/React frontends and cloud-native delivery on GCP, AWS and Kubernetes. ' +
+    'Subject Matter Expert for ECCN export-control classification reviews across products and third-party components. ' +
+    'Delivered 35% performance gains, cut critical vulnerabilities by 40%, and hold a patent for an Agentic AI-driven UI testing framework.',
+  skills: [
+    'Java 17', 'Spring Boot', 'Hibernate', 'Angular', 'React', 'TypeScript', 'JavaScript', 'Node.js', 'GraphQL',
+    'GCP', 'AWS', 'Kubernetes', 'Docker', 'Terraform', 'GitLab CI/CD', 'Jenkins',
+    'PostgreSQL', 'Oracle SQL', 'MySQL', 'Redis', 'Cassandra', 'DynamoDB', 'Kafka', 'RabbitMQ',
+    'Microservices', 'RESTful APIs', 'Event-Driven Design', 'Saga Pattern',
+    'LangChain', 'LangGraph', 'Spring AI', 'MCP Server/Client', 'LangChain4j', 'Playwright',
+    'JUnit', 'Mockito', 'SonarQube', 'Fortify', 'OWASP', 'ECCN Export-Control',
+  ],
+  certifications: [
+    'ECCN Subject Matter Expert (OpenText)',
+    'Patent: Agentic AI-driven UI Testing Framework (2025)',
+  ],
+  languages: ['English (Professional)', 'Hindi (Native)', 'Punjabi (Native)'],
+  workExperience: [
+    {
+      id: 'ot1',
+      company: 'OpenText',
+      role: 'Lead Software Engineer · ECCN Subject Matter Expert',
+      location: 'Bangalore, India',
+      startDate: '2023-03',
+      endDate: '',
+      current: true,
+      description:
+        '• Appointed SME for ECCN export-control classification: assess modules, encryption, third-party components, sign off compliance reviews.\n' +
+        '• Led V2→V3 migration from AngularJS to Angular 17 + Spring Boot microservices; 50% capacity increase, moved to GCP.\n' +
+        '• Reduced critical vulnerabilities 40%, improved performance 35% via Redis caching; mentor 6+ engineers.\n' +
+        '• Built CC4E conversational assistant with LangChain, LangGraph and MCP; handles 100+ daily conversations.\n' +
+        '• Architected SchemaBridge AI: schema mapping engine combining Vertex AI LLM with deterministic multi-strategy matching pipeline.\n' +
+        '• Created Adept (AI bot: AST + Aviator for implementation, bug fix, MR) and Autoverbum (AI: manual → Selenium automation).\n' +
+        '• Integrated JATO UI into V3; designed end-to-end metadata management for deliverables (custom columns, create/update/delete).',
+    },
+    {
+      id: 'ora1',
+      company: 'Oracle',
+      role: 'Senior Member of Technical Staff',
+      location: 'Bangalore, India',
+      startDate: '2022-01',
+      endDate: '2023-02',
+      current: false,
+      description:
+        '• Built SAR and Journals modules for FCCS cloud platform with audit-compliant RESTful services for Fortune 500 clients; 85%+ code coverage.\n' +
+        '• Collaborated across three time zones to deliver quarterly releases.\n' +
+        '• Integrated VBCS with existing application; delivered new UIs in Visual Builder Cloud Service.',
+    },
+    {
+      id: 'ot2',
+      company: 'OpenText',
+      role: 'Senior Software Engineer',
+      location: 'Bangalore, India',
+      startDate: '2020-01',
+      endDate: '2022-01',
+      current: false,
+      description:
+        '• Delivered V2 multi-tenant SaaS across 12 Java/Spring Boot microservices at 99.9% uptime for 200+ enterprise customers.\n' +
+        '• Implemented Saga pattern for distributed transactions across six microservices.\n' +
+        '• Deployed and managed services on Cloud Foundry; delivered features using Java 17, Spring Boot and GraphQL.',
+    },
+    {
+      id: 'lti1',
+      company: 'LTIMindtree',
+      role: 'Senior Software Engineer',
+      location: 'Bangalore, India',
+      startDate: '2016-07',
+      endDate: '2020-01',
+      current: false,
+      description:
+        '• Built enterprise Java/Spring Boot backend services for banking and insurance applications.\n' +
+        '• Automated SLA and server-health dashboards, reducing manual effort by 50% and incident response time by 30%.\n' +
+        '• Resolved production incidents within 4-hour SLA as primary technical point of contact.',
+    },
+  ],
+  education: [
+    {
+      id: 'edu1',
+      institution: 'Chandigarh University',
+      degree: 'Bachelor of Engineering',
+      field: 'Computer Science',
+      location: 'Chandigarh, India',
+      startDate: '2012-06',
+      endDate: '2016-07',
+      gpa: '',
+    },
+  ],
+};
+
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -409,6 +519,8 @@ function CreateMode() {
   const setField = <K extends keyof ResumeFormData>(key: K, value: ResumeFormData[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
+  const loadPreset = () => setForm(BALJINDER_PRESET);
+
   const updateWork = (id: string, key: keyof WorkExperience, value: unknown) =>
     setForm((f) => ({
       ...f,
@@ -451,6 +563,21 @@ function CreateMode() {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto px-6 py-6">
       {/* ── Form column ── */}
       <div className="overflow-auto">
+
+        {/* Load Preset Banner */}
+        <div className="mb-4 p-3 bg-primary/10 border border-primary/30 rounded-xl flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-white">🚀 Load My Data</p>
+            <p className="text-xs text-gray-400 mt-0.5">Pre-fills all fields with Baljinder Singh's complete profile — matching the Python script.</p>
+          </div>
+          <button
+            type="button"
+            onClick={loadPreset}
+            className={btnPrimary}
+          >
+            Load Preset
+          </button>
+        </div>
 
         {/* Old Resume */}
         <Section title="Existing Resume (Optional)">
