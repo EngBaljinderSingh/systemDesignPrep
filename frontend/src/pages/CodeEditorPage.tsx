@@ -40,6 +40,9 @@ let runtimeCacheFetchedAt = 0;
 const RUNTIME_CACHE_TTL_MS = 5 * 60 * 1000; // re-fetch after 5 minutes
 let inflight: Promise<Record<string, string>> | null = null;
 
+// In production (Cloudflare Pages), query public Piston directly because Cloudflare redirects drop POST requests
+const PISTON_BASE = import.meta.env.PROD ? 'https://emkc.org/api/v2/piston' : '/piston/api/v2';
+
 async function fetchRuntimeVersions(): Promise<Record<string, string>> {
   // Return cached result if still fresh
   if (Object.keys(runtimeCache).length > 0 && Date.now() - runtimeCacheFetchedAt < RUNTIME_CACHE_TTL_MS) {
@@ -48,7 +51,7 @@ async function fetchRuntimeVersions(): Promise<Record<string, string>> {
   // Deduplicate concurrent requests
   if (inflight) return inflight;
   inflight = axios
-    .get<{ language: string; version: string; aliases?: string[] }[]>('/piston/api/v2/runtimes')
+    .get<{ language: string; version: string; aliases?: string[] }[]>(`${PISTON_BASE}/runtimes`)
     .then(({ data }) => {
       const map: Record<string, string> = {};
       for (const r of data) {
@@ -262,7 +265,7 @@ export default function CodeEditorPage({ problemTitle, problemDescription, onClo
     }
 
     try {
-      const { data } = await axios.post('/piston/api/v2/execute', {
+      const { data } = await axios.post(`${PISTON_BASE}/execute`, {
         language: pistonLang.language,
         version,
         files: [{ name: pistonLang.filename, content: code }],

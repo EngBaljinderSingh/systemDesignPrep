@@ -23,7 +23,7 @@ public class SecurityConfig {
      * Set CORS_ALLOWED_ORIGINS env var in production to your actual domain(s).
      * Example: https://yourdomain.com,https://www.yourdomain.com
      */
-    @Value("${sdp.cors.allowed-origins:http://localhost:3000,http://localhost:80}")
+    @Value("${sdp.cors.allowed-origins:http://localhost:3000,http://localhost:80,https://systemdesignprep.pages.dev}")
     private String allowedOriginsRaw;
 
     @Bean
@@ -50,8 +50,17 @@ public class SecurityConfig {
                 .toList();
 
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(origins);
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "https://*.pages.dev",
+                "https://systemdesignprep.pages.dev",
+                "https://*.onrender.com"
+        ));
+        for (String origin : origins) {
+            config.addAllowedOrigin(origin);
+        }
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { ResumeData } from '../utils/resumeTemplateRenderer';
 
-const BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
+const BASE = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.PROD ? 'https://systemdesignprep.onrender.com/api/v1' : '/api/v1');
 
 const api = axios.create({
   baseURL: BASE,
