@@ -1,8 +1,10 @@
 import axios from 'axios';
 import type { CanvasState, InterviewSessionResponse, FeedbackItem } from '../types/interview';
 
+const BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
+
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: BASE,
   headers: { 'Content-Type': 'application/json' },
 });
 
