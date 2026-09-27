@@ -35,27 +35,30 @@ public class RedisSessionCacheAdapter implements SessionCachePort {
         try {
             String json = objectMapper.writeValueAsString(session);
             redisTemplate.opsForValue().set(key(session.getId()), json, TTL);
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             log.warn("Failed to cache session {}: {}", session.getId(), e.getMessage());
         }
     }
 
     @Override
     public Optional<InterviewSession> get(UUID sessionId) {
-        String json = redisTemplate.opsForValue().get(key(sessionId));
-        if (json == null) return Optional.empty();
         try {
+            String json = redisTemplate.opsForValue().get(key(sessionId));
+            if (json == null) return Optional.empty();
             return Optional.of(objectMapper.readValue(json, InterviewSession.class));
-        } catch (JsonProcessingException e) {
-            log.warn("Failed to deserialize cached session {}: {}", sessionId, e.getMessage());
-            evict(sessionId);
+        } catch (Exception e) {
+            log.warn("Failed to retrieve or deserialize cached session {}: {}", sessionId, e.getMessage());
             return Optional.empty();
         }
     }
 
     @Override
     public void evict(UUID sessionId) {
-        redisTemplate.delete(key(sessionId));
+        try {
+            redisTemplate.delete(key(sessionId));
+        } catch (Exception e) {
+            log.warn("Failed to evict cached session {}: {}", sessionId, e.getMessage());
+        }
     }
 
     private String key(UUID sessionId) {

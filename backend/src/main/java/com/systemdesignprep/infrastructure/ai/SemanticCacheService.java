@@ -1,5 +1,7 @@
 package com.systemdesignprep.infrastructure.ai;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ import java.util.Optional;
 @ConditionalOnProperty(name = "sdp.cache.provider", havingValue = "redis", matchIfMissing = true)
 public class SemanticCacheService implements SemanticCache {
 
+    private static final Logger log = LoggerFactory.getLogger(SemanticCacheService.class);
     private static final String KEY_PREFIX = "sdp:cache:";
     private static final Duration TTL = Duration.ofHours(24);
 
@@ -32,13 +35,22 @@ public class SemanticCacheService implements SemanticCache {
 
     @Override
     public Optional<String> getCachedResponse(String prompt) {
-        String value = redis.opsForValue().get(KEY_PREFIX + hash(prompt));
-        return Optional.ofNullable(value);
+        try {
+            String value = redis.opsForValue().get(KEY_PREFIX + hash(prompt));
+            return Optional.ofNullable(value);
+        } catch (Exception e) {
+            log.warn("Redis semantic cache read failed (proceeding without cache): {}", e.getMessage());
+            return Optional.empty();
+        }
     }
 
     @Override
     public void cacheResponse(String prompt, String response) {
-        redis.opsForValue().set(KEY_PREFIX + hash(prompt), response, TTL);
+        try {
+            redis.opsForValue().set(KEY_PREFIX + hash(prompt), response, TTL);
+        } catch (Exception e) {
+            log.warn("Redis semantic cache write failed: {}", e.getMessage());
+        }
     }
 
     private static String hash(String input) {
