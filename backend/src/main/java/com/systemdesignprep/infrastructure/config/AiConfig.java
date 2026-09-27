@@ -124,15 +124,21 @@ public class AiConfig {
             }).toList();
 
             List<String> modelsToTry = new ArrayList<>();
-            modelsToTry.add(model);
-            if (!model.endsWith(":free")) {
-                modelsToTry.add(model + ":free");
+            if (model != null && !model.isBlank()) {
+                modelsToTry.add(model.trim());
             }
-            if (!modelsToTry.contains("meta-llama/llama-3.3-70b-instruct:free")) {
-                modelsToTry.add("meta-llama/llama-3.3-70b-instruct:free");
-            }
-            if (!modelsToTry.contains("deepseek/deepseek-chat:free")) {
-                modelsToTry.add("deepseek/deepseek-chat:free");
+            // Active free models verified from OpenRouter live API
+            List<String> verifiedFreeModels = List.of(
+                "openrouter/free",
+                "google/gemma-4-31b-it:free",
+                "google/gemma-4-26b-a4b-it:free",
+                "qwen/qwen3.8-27b:free",
+                "nvidia/nemotron-3.5-lightning:free"
+            );
+            for (String freeModel : verifiedFreeModels) {
+                if (!modelsToTry.contains(freeModel)) {
+                    modelsToTry.add(freeModel);
+                }
             }
 
             WebClientResponseException lastError = null;
