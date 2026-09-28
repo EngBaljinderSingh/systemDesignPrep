@@ -98,7 +98,7 @@ export default function OpenRouterChat() {
       {/* Floating Chat Icon Button */}
       {!isOpen && (
         <button
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg flex items-center justify-center text-white text-3xl transition-all duration-200"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg flex items-center justify-center text-white text-3xl transition-all duration-200"
           style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.18)' }}
           onClick={() => setIsOpen(true)}
           title="Open Chat"
@@ -111,7 +111,7 @@ export default function OpenRouterChat() {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-96 bg-white dark:bg-gray-900 shadow-2xl rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col" style={{ minHeight: 420, maxHeight: 520 }}>
+        <div className="fixed bottom-4 right-4 left-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 sm:w-96 bg-white dark:bg-gray-900 shadow-2xl rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col" style={{ minHeight: 420, maxHeight: '80vh' }}>
           {/* Header with Close Icon */}
           <div className="flex items-center justify-between px-4 py-2 bg-blue-600 text-white rounded-t-xl">
             <span className="font-bold text-lg">SDP AI</span>
