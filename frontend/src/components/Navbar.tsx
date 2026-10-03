@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import { Menu, Sparkles, Shield, LogOut, LogIn } from 'lucide-react';
+import { NavLink, Link } from 'react-router-dom';
+import { Menu, Sparkles, Shield, LogOut, LogIn, User } from 'lucide-react';
 import { useTheme } from '../ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import ProMonetizationModal from './ProMonetizationModal';
@@ -24,6 +24,7 @@ const baseNavGroups: NavGroup[] = [
     sectionTitle: 'Core',
     items: [
       { to: '/', label: 'Home', icon: '🏠', end: true },
+      { to: '/profile', label: 'My Profile', icon: '👤' },
     ],
   },
   {
@@ -115,27 +116,37 @@ export default function Navbar({ isOpen, onToggle }: NavbarProps) {
         {/* ── User Account Bar ── */}
         <div className={`p-2 border-b ${border} bg-surface-light/40`}>
           {user ? (
-            <div className="flex items-center justify-between gap-2 p-1.5 rounded-xl bg-black/20 border border-gray-800">
-              <div className="flex items-center gap-2 overflow-hidden">
-                <img
-                  src={user.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
-                  alt={user.name}
-                  className="w-7 h-7 rounded-lg object-cover bg-primary/20 shrink-0"
-                />
+            <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-xl bg-black/20 border border-gray-800">
+              <Link
+                to="/profile"
+                title="View & Edit Profile"
+                className="flex items-center gap-2 overflow-hidden flex-1 group hover:opacity-90 transition-opacity"
+              >
+                {user.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="w-7 h-7 rounded-lg object-cover bg-primary/20 shrink-0 group-hover:ring-2 group-hover:ring-primary/50 transition-all"
+                  />
+                ) : (
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm group-hover:ring-2 group-hover:ring-primary/50 transition-all">
+                    {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                )}
                 {isOpen && (
                   <div className="truncate text-left leading-tight">
-                    <div className="text-xs font-bold text-white truncate flex items-center gap-1">
-                      <span>{user.name}</span>
+                    <div className="text-xs font-bold text-white truncate flex items-center gap-1 group-hover:text-primary transition-colors">
+                      <span className="truncate">{user.name}</span>
                       {isAdmin ? (
-                        <span className="text-[9px] font-mono px-1 rounded bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30">
+                        <span className="text-[9px] font-mono px-1 rounded bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30 shrink-0">
                           ADMIN
                         </span>
                       ) : isPro ? (
-                        <span className="text-[9px] font-mono px-1 rounded bg-yellow-500/20 text-yellow-300 font-bold border border-yellow-500/30">
+                        <span className="text-[9px] font-mono px-1 rounded bg-yellow-500/20 text-yellow-300 font-bold border border-yellow-500/30 shrink-0">
                           PRO
                         </span>
                       ) : (
-                        <span className="text-[9px] font-mono px-1 rounded bg-gray-700 text-gray-300">
+                        <span className="text-[9px] font-mono px-1 rounded bg-gray-700 text-gray-300 shrink-0">
                           FREE
                         </span>
                       )}
@@ -143,15 +154,24 @@ export default function Navbar({ isOpen, onToggle }: NavbarProps) {
                     <div className="text-[10px] text-gray-400 truncate">{user.email}</div>
                   </div>
                 )}
-              </div>
+              </Link>
               {isOpen && (
-                <button
-                  onClick={logout}
-                  title="Sign Out"
-                  className="p-1 rounded-lg hover:bg-white/10 text-gray-400 hover:text-red-400 transition-colors shrink-0"
-                >
-                  <LogOut size={13} />
-                </button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Link
+                    to="/profile"
+                    title="Profile & Settings"
+                    className="p-1 rounded-lg hover:bg-white/10 text-gray-400 hover:text-primary transition-colors"
+                  >
+                    <User size={13} />
+                  </Link>
+                  <button
+                    onClick={logout}
+                    title="Sign Out"
+                    className="p-1 rounded-lg hover:bg-white/10 text-gray-400 hover:text-red-400 transition-colors"
+                  >
+                    <LogOut size={13} />
+                  </button>
+                </div>
               )}
             </div>
           ) : (

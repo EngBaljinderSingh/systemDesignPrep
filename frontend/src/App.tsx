@@ -18,6 +18,7 @@ import { AuthProvider } from './context/AuthContext';
 import ResumePage from './pages/ResumePage';
 import HLDCaseStudiesPage from './pages/HLDCaseStudiesPage';
 import AdminPage from './pages/AdminPage';
+import ProfilePage from './pages/ProfilePage';
 
 function AppContent() {
   const { theme } = useTheme();
@@ -48,6 +49,7 @@ function AppContent() {
               <Route path="/mock-interview" element={<MockInterviewPage />} />
               <Route path="/hackerrank" element={<HackerRankPage />} />
               <Route path="/resume" element={<ResumePage />} />
+              <Route path="/profile" element={<ProfilePage />} />
               <Route path="/admin" element={<AdminPage />} />
             </Routes>
           </main>
