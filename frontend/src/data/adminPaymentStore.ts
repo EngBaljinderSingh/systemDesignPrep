@@ -2,7 +2,6 @@
 // Store for Admin Payment Configuration, QR Codes, and Order Approvals
 
 export interface PaymentSettings {
-  adminPasscode: string;
   upiId: string;
   upiPayeeName: string;
   qrCodeImage: string; // URL or base64 data URL
@@ -45,7 +44,6 @@ const ORDERS_KEY = 'sdp_admin_orders';
 const LICENSES_KEY = 'sdp_admin_licenses';
 
 const DEFAULT_SETTINGS: PaymentSettings = {
-  adminPasscode: 'Japan@2027',
   upiId: 'systemdesignprep@okaxis',
   upiPayeeName: 'System Design Prep',
   qrCodeImage: DEFAULT_QR_CODE,
@@ -99,11 +97,6 @@ export function getPaymentSettings(): PaymentSettings {
       return DEFAULT_SETTINGS;
     }
     const parsed = JSON.parse(raw);
-    // If it was previous default, migrate to new passcode
-    if (parsed.adminPasscode === 'admin123') {
-      parsed.adminPasscode = 'Japan@2027';
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(parsed));
-    }
     return { ...DEFAULT_SETTINGS, ...parsed };
   } catch {
     return DEFAULT_SETTINGS;

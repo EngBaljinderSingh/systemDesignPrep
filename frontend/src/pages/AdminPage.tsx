@@ -26,9 +26,8 @@ import {
 } from '../data/adminPaymentStore';
 
 export default function AdminPage() {
-  const { user, isAdmin, login } = useAuth();
-  const [passcode, setPasscode] = useState('');
-  const [passcodeError, setPasscodeError] = useState('');
+  const { user, loginWithGoogle, logout } = useAuth();
+  const isOwner = user?.email?.toLowerCase() === 'baljindersinghcse@gmail.com';
   const [activeTab, setActiveTab] = useState<'payments' | 'orders' | 'licenses'>('payments');
 
   // Settings State
@@ -45,21 +44,6 @@ export default function AdminPage() {
     setOrders(getOrders());
     setLicenses(getLicenseKeys());
   }, []);
-
-  // Passcode verification
-  const handlePasscodeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passcode === settings.adminPasscode || passcode === 'Japan@2027') {
-      try {
-        await login('admin', 'Japan@2027');
-        setPasscodeError('');
-      } catch (err: any) {
-        setPasscodeError(err.message || 'Login failed.');
-      }
-    } else {
-      setPasscodeError('Invalid Admin Passcode. Please enter your secret admin key.');
-    }
-  };
 
   // QR Code Image Upload Handler (converts to base64 Data URL)
   const handleQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,43 +98,41 @@ export default function AdminPage() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  // If not logged in as Admin, show Passcode screen
-  if (!isAdmin) {
+  // If not logged in as the verified Owner, show Google sign-in gate
+  if (!isOwner) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-6">
-        <div className="w-full max-w-md bg-surface border border-gray-700/80 rounded-2xl p-6 shadow-2xl text-center space-y-4">
+        <div className="w-full max-w-md bg-surface border border-gray-700/80 rounded-2xl p-8 shadow-2xl text-center space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center mx-auto text-2xl">
             <Lock size={28} />
           </div>
-          <h2 className="text-xl font-bold text-white">Admin Control Portal</h2>
-          <p className="text-xs text-gray-400">
-            Enter your master admin passcode to configure payment QR codes, manage pricing, and approve customer orders.
+          <h2 className="text-xl font-bold text-white">Owner Admin Portal</h2>
+          <p className="text-xs text-gray-400 leading-relaxed">
+            {user
+              ? `Access Denied: You are signed in as ${user.email}. This portal is strictly restricted to the verified platform owner (baljindersinghcse@gmail.com).`
+              : 'This portal is restricted to the platform owner. Sign in with your owner Google account to manage payment QR codes, pricing, and approve customer orders.'}
           </p>
 
-          <form onSubmit={handlePasscodeSubmit} className="space-y-3 pt-2">
-            <div>
-              <input
-                type="password"
-                value={passcode}
-                onChange={(e) => setPasscode(e.target.value)}
-                placeholder="Enter your secret admin passcode"
-                required
-                className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-gray-700 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary text-center"
-              />
-              {passcodeError && (
-                <span className="text-xs text-red-400 block mt-1.5">{passcodeError}</span>
-              )}
-            </div>
-            <button
-              type="submit"
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary-dark hover:to-purple-700 text-white font-bold text-xs shadow-lg shadow-primary/25 transition-all"
-            >
-              Unlock Admin Dashboard
-            </button>
-          </form>
+          <div className="pt-2">
+            {!user ? (
+              <button
+                onClick={loginWithGoogle}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary-dark hover:to-purple-700 text-white font-bold text-xs shadow-lg shadow-primary/25 transition-all flex items-center justify-center gap-2"
+              >
+                <span>Sign In with Owner Google Account</span>
+              </button>
+            ) : (
+              <button
+                onClick={logout}
+                className="w-full py-2.5 rounded-xl bg-surface-light border border-gray-700 hover:bg-white/10 text-gray-300 font-bold text-xs transition-colors"
+              >
+                Sign Out & Switch Account
+              </button>
+            )}
+          </div>
 
-          <div className="text-[11px] text-gray-500 pt-2 border-t border-gray-800">
-            Protected area for authorized site owners only.
+          <div className="text-[11px] text-gray-500 pt-2 border-t border-gray-800 font-mono">
+            Authorized Owner: baljindersinghcse@gmail.com
           </div>
         </div>
       </div>
@@ -369,19 +351,17 @@ export default function AdminPage() {
                   />
                 </div>
 
-                {/* Master Admin Passcode */}
+                {/* Authenticated Owner Account */}
                 <div className="sm:col-span-2 bg-purple-950/20 border border-purple-500/30 p-3.5 rounded-xl space-y-1">
-                  <label className="text-xs text-purple-200 font-bold block">
-                    Master Admin Secret Passcode
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.adminPasscode}
-                    onChange={(e) => setSettings({ ...settings, adminPasscode: e.target.value })}
-                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-black/50 border border-purple-500/50 text-white font-mono focus:border-purple-400 focus:outline-none"
-                  />
+                  <div className="text-xs text-purple-200 font-bold flex items-center gap-1.5">
+                    <Shield size={14} className="text-purple-400" />
+                    <span>Authenticated Owner Account</span>
+                  </div>
+                  <p className="text-xs text-white font-mono font-semibold">
+                    baljindersinghcse@gmail.com
+                  </p>
                   <span className="text-[10px] text-gray-400 block">
-                    Change this to your own private passcode. Only users who know this passcode can unlock this admin control center.
+                    Admin access is securely linked to your verified Google account. No manual passwords required.
                   </span>
                 </div>
               </div>

@@ -65,85 +65,22 @@ const CURRENT_USER_KEY = 'sdp_current_user_session';
 const USERS_DB_KEY = 'sdp_registered_users_db';
 const PRO_EMAILS_KEY = 'sdp_verified_pro_emails';
 
-// Authorized admin emails list
-export const ADMIN_EMAILS = [
-  'admin',
-  'admin@sdp.dev',
-  'baljindersinghcse@gmail.com',
-];
+// Authorized platform owner email
+export const OWNER_EMAIL = 'baljindersinghcse@gmail.com';
 
 export const isAuthorizedAdmin = (email?: string | null): boolean => {
   if (!email) return false;
-  return ADMIN_EMAILS.includes(email.trim().toLowerCase());
+  return email.trim().toLowerCase() === OWNER_EMAIL;
 };
-
-// Initial pre-registered admin accounts
-const INITIAL_ACCOUNTS: StoredAccount[] = [
-  {
-    id: 'usr_admin_01',
-    name: 'Admin',
-    email: 'admin',
-    title: 'Lead System Architect & Admin',
-    bio: 'Platform founder and system design reviewer.',
-    passwordHash: 'Japan@2027',
-    role: 'admin',
-    isPro: true,
-    provider: 'email',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'usr_admin_02',
-    name: 'Platform Administrator',
-    email: 'admin@sdp.dev',
-    title: 'System Design Prep Administrator',
-    bio: 'Platform administrator for SDP.',
-    passwordHash: 'Japan@2027',
-    role: 'admin',
-    isPro: true,
-    provider: 'email',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'usr_admin_03',
-    name: 'Baljinder Singh',
-    email: 'baljindersinghcse@gmail.com',
-    title: 'Platform Founder & Lead Architect',
-    bio: 'System Design Prep Platform Founder & Administrator.',
-    passwordHash: 'Japan@2027',
-    role: 'admin',
-    isPro: true,
-    provider: 'google',
-    createdAt: new Date().toISOString(),
-  },
-];
 
 function getUsersDB(): StoredAccount[] {
   try {
     const raw = localStorage.getItem(USERS_DB_KEY);
-    if (!raw) {
-      localStorage.setItem(USERS_DB_KEY, JSON.stringify(INITIAL_ACCOUNTS));
-      return INITIAL_ACCOUNTS;
-    }
+    if (!raw) return [];
     const list: StoredAccount[] = JSON.parse(raw);
-    let updated = false;
-    for (const init of INITIAL_ACCOUNTS) {
-      const found = list.find((u) => u.email.toLowerCase() === init.email.toLowerCase());
-      if (!found) {
-        list.push(init);
-        updated = true;
-      } else if (found.passwordHash !== 'Japan@2027') {
-        found.passwordHash = 'Japan@2027';
-        found.role = 'admin';
-        found.isPro = true;
-        updated = true;
-      }
-    }
-    if (updated) {
-      localStorage.setItem(USERS_DB_KEY, JSON.stringify(list));
-    }
-    return list;
+    return list.filter((u) => u.email !== 'admin' && u.email !== 'admin@sdp.dev');
   } catch {
-    return INITIAL_ACCOUNTS;
+    return [];
   }
 }
 
@@ -234,25 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<void> => {
     const cleanEmail = email.trim().toLowerCase();
 
-    // 1. Admin shortcut bypass
-    if ((cleanEmail === 'admin' || cleanEmail === 'admin@sdp.dev') && password === 'Japan@2027') {
-      const sessionUser: User = {
-        id: 'usr_admin_01',
-        name: 'Admin',
-        email: cleanEmail,
-        title: 'Platform Administrator',
-        avatar: undefined,
-        role: 'admin',
-        isPro: true,
-        provider: 'email',
-        joinedAt: new Date().toISOString(),
-      };
-      setUser(sessionUser);
-      setIsAuthModalOpen(false);
-      return;
-    }
-
-    // 2. Try Firebase Auth
+    // 1. Try Firebase Auth
     try {
       const cred = await signInWithEmailAndPassword(auth, cleanEmail, password);
       if (cred.user) {
@@ -607,8 +526,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         user,
-        isAdmin: user?.role === 'admin',
-        isPro: Boolean(user?.isPro || user?.role === 'admin'),
+        isAdmin: Boolean(user?.email && user.email.toLowerCase() === OWNER_EMAIL),
+        isPro: Boolean(user?.isPro || (user?.email && user.email.toLowerCase() === OWNER_EMAIL)),
         login,
         loginWithGoogle,
         loginWithSocial,
