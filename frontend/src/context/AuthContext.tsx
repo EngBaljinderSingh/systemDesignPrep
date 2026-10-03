@@ -558,9 +558,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         isAdmin: Boolean(user?.email && user.email.toLowerCase() === OWNER_EMAIL),
-        isPro: previewAsFree
-          ? false
-          : Boolean(user?.isPro || (user?.email && user.email.toLowerCase() === OWNER_EMAIL)),
+        isPro: true, // 100% free and unlocked for all engineers worldwide
         login,
         loginWithGoogle,
         loginWithSocial,

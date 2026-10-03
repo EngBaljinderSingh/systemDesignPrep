@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Menu, Sparkles, Shield, LogOut, LogIn, User } from 'lucide-react';
+import { Menu, Shield, LogOut, LogIn, User, Coffee } from 'lucide-react';
 import { useTheme } from '../ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import ProMonetizationModal from './ProMonetizationModal';
@@ -229,23 +229,21 @@ export default function Navbar({ isOpen, onToggle }: NavbarProps) {
           ))}
         </nav>
 
-        {/* ── Go Pro / Monetization Trigger Button ── */}
-        {!isPro && (
-          <div className={`p-2 border-t ${border}`}>
-            <button
-              onClick={() => setIsProOpen(true)}
-              className={`w-full flex items-center justify-center gap-2 rounded-xl py-2 px-2.5 text-xs font-bold transition-all shadow-sm ${
-                isOpen
-                  ? 'bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-dark hover:to-indigo-700 text-white'
-                  : 'bg-primary text-white p-2'
-              }`}
-              title="Unlock System Design Prep Pro"
-            >
-              <Sparkles size={14} className="text-yellow-300 shrink-0" />
-              {isOpen && <span>Go Pro ($29)</span>}
-            </button>
-          </div>
-        )}
+        {/* ── Buy Me a Coffee Supporter Button ── */}
+        <div className={`p-2 border-t ${border}`}>
+          <button
+            onClick={() => setIsProOpen(true)}
+            className={`w-full flex items-center justify-center gap-2 rounded-xl py-2 px-2.5 text-xs font-bold transition-all shadow-sm cursor-pointer ${
+              isOpen
+                ? 'bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300'
+                : 'bg-amber-500/20 text-amber-300 p-2'
+            }`}
+            title="Buy Me a Coffee — Support Free Tech Prep"
+          >
+            <Coffee size={14} className="text-yellow-400 shrink-0" />
+            {isOpen && <span>Buy Me a Coffee</span>}
+          </button>
+        </div>
 
         {/* ── Footer: theme toggle & quick admin ── */}
         <div className={`border-t ${border} p-2 shrink-0 flex items-center justify-between`}>

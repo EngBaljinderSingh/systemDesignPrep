@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { hldCaseStudies, capacityRules, type HLDCaseStudy } from '../data/systemDesignCaseStudies';
 import CapacityBottleneckSimulator from '../components/CapacityBottleneckSimulator';
 import ProMonetizationModal from '../components/ProMonetizationModal';
-import { useAuth } from '../context/AuthContext';
 import {
   Sparkles,
   Layers,
@@ -13,12 +12,11 @@ import {
   Download,
   AlertCircle,
   Maximize2,
-  Lock,
-  CheckCircle2
+  Coffee
 } from 'lucide-react';
 
 // ── Capacity Rules Panel ──────────────────────────────────────────────────
-function CapacityRulesPanel({ onOpenPro, isPro }: { onOpenPro: () => void; isPro: boolean }) {
+function CapacityRulesPanel() {
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       {/* Hero Banner */}
@@ -36,26 +34,11 @@ function CapacityRulesPanel({ onOpenPro, isPro }: { onOpenPro: () => void; isPro
             </p>
           </div>
           <button
-            onClick={() => {
-              if (isPro) {
-                window.print();
-              } else {
-                onOpenPro();
-              }
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-dark hover:to-indigo-700 text-white font-semibold text-xs shadow-lg shadow-primary/25 transition-all shrink-0"
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-dark hover:to-indigo-700 text-white font-semibold text-xs shadow-lg shadow-primary/25 transition-all shrink-0 cursor-pointer"
           >
-            {isPro ? (
-              <>
-                <Download size={14} className="text-green-300" />
-                <span>Print / Save Formula Sheet</span>
-              </>
-            ) : (
-              <>
-                <Sparkles size={14} className="text-yellow-300" />
-                <span>Download PDF Cheat Sheet (Pro)</span>
-              </>
-            )}
+            <Download size={14} className="text-green-300" />
+            <span>Print / Save Formula Sheet (Free)</span>
           </button>
         </div>
       </div>
@@ -154,8 +137,7 @@ function CapacityRulesPanel({ onOpenPro, isPro }: { onOpenPro: () => void; isPro
   );
 }
 
-// ── Case Study Detail Panel ───────────────────────────────────────────────
-function CaseStudyDetail({ cs, onOpenPro, isPro }: { cs: HLDCaseStudy; onOpenPro: () => void; isPro: boolean }) {
+function CaseStudyDetail({ cs }: { cs: HLDCaseStudy }) {
   const [activeTab, setActiveTab] = useState<'simulator' | 'math' | 'architecture' | 'sizing' | 'qa' | 'tradeoffs'>('simulator');
   const [showImageModal, setShowImageModal] = useState(false);
 
@@ -194,30 +176,11 @@ function CaseStudyDetail({ cs, onOpenPro, isPro }: { cs: HLDCaseStudy; onOpenPro
 
           <div className="flex items-center gap-2 shrink-0">
             <button
-              onClick={() => {
-                if (isPro) {
-                  window.open(cs.diagramImage, '_blank');
-                } else {
-                  onOpenPro();
-                }
-              }}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-medium text-xs border transition-all ${
-                isPro
-                  ? 'bg-green-500/15 hover:bg-green-500/25 border-green-500/30 text-green-300'
-                  : 'bg-yellow-500/10 hover:bg-yellow-500/20 border-yellow-500/30 text-yellow-300'
-              }`}
+              onClick={() => window.open(cs.diagramImage, '_blank')}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-medium text-xs border border-primary/40 bg-primary/15 hover:bg-primary/25 text-white transition-all shadow-sm cursor-pointer"
             >
-              {isPro ? (
-                <>
-                  <Download size={14} className="text-green-400" />
-                  <span>Download Architecture Blueprint</span>
-                </>
-              ) : (
-                <>
-                  <Lock size={13} className="text-yellow-400" />
-                  <span>Export Architecture Blueprint (Pro)</span>
-                </>
-              )}
+              <Download size={14} className="text-primary" />
+              <span>Download Architecture Blueprint</span>
             </button>
           </div>
         </div>
@@ -504,53 +467,28 @@ function CaseStudyDetail({ cs, onOpenPro, isPro }: { cs: HLDCaseStudy; onOpenPro
           </div>
 
           <div className="space-y-4">
-            {cs.interviewQAs.map((qa, i) => {
-              const isLocked = !isPro && i > 0;
-              return (
-                <div key={i} className="bg-surface-light border border-gray-700/80 rounded-2xl p-5 space-y-3">
-                  <div className="flex items-start gap-3">
-                    <span className="px-2 py-0.5 rounded bg-primary/20 text-primary font-mono font-bold text-xs shrink-0 mt-0.5">
-                      Q{i + 1}
+            {cs.interviewQAs.map((qa, i) => (
+              <div key={i} className="bg-surface-light border border-gray-700/80 rounded-2xl p-5 space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="px-2 py-0.5 rounded bg-primary/20 text-primary font-mono font-bold text-xs shrink-0 mt-0.5">
+                    Q{i + 1}
+                  </span>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">{qa.question}</h4>
+                    <span className="text-[11px] text-gray-500 block mt-0.5">
+                      🎯 Interviewer test: {qa.interviewerIntent}
                     </span>
-                    <div>
-                      <h4 className="text-sm font-bold text-white">{qa.question}</h4>
-                      <span className="text-[11px] text-gray-500 block mt-0.5">
-                        🎯 Interviewer test: {qa.interviewerIntent}
-                      </span>
-                    </div>
                   </div>
-
-                  {isLocked ? (
-                    <div className="relative rounded-xl overflow-hidden border border-yellow-500/20 bg-black/40 p-4">
-                      <div className="filter blur-sm select-none opacity-25 text-xs text-gray-400 line-clamp-3">
-                        {qa.recommendedAnswer}
-                      </div>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/75 backdrop-blur-[2px] p-4 text-center">
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 text-xs font-semibold mb-2">
-                          <Lock size={12} /> Staff Model Answer (Pro Exclusive)
-                        </div>
-                        <p className="text-xs text-gray-300 max-w-sm mb-3">
-                          Unlock this complete Principal-level system design interview response.
-                        </p>
-                        <button
-                          onClick={onOpenPro}
-                          className="px-4 py-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white text-xs font-bold shadow-md shadow-primary/25 transition-all"
-                        >
-                          Unlock Pro ($29 / ₹999)
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-black/30 border border-gray-800 rounded-xl p-4 text-xs text-gray-300 leading-relaxed pl-4 border-l-2 border-l-green-500">
-                      <div className="text-green-400 font-bold text-[11px] uppercase tracking-wider mb-1">
-                        Model Senior Engineer Answer:
-                      </div>
-                      {qa.recommendedAnswer}
-                    </div>
-                  )}
                 </div>
-              );
-            })}
+
+                <div className="bg-black/30 border border-gray-800 rounded-xl p-4 text-xs text-gray-300 leading-relaxed pl-4 border-l-2 border-l-green-500">
+                  <div className="text-green-400 font-bold text-[11px] uppercase tracking-wider mb-1">
+                    Model Senior Engineer Answer:
+                  </div>
+                  {qa.recommendedAnswer}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -614,7 +552,6 @@ function CaseStudyDetail({ cs, onOpenPro, isPro }: { cs: HLDCaseStudy; onOpenPro
 export default function HLDCaseStudiesPage() {
   const [selected, setSelected] = useState<string>('rules');
   const [isProModalOpen, setIsProModalOpen] = useState(false);
-  const { isPro } = useAuth();
 
   const sidebarItems = [
     { id: 'rules', label: 'Universal Formulas', icon: '📐', subtitle: 'Rules of Thumb & Math', category: 'General' },
@@ -667,49 +604,38 @@ export default function HLDCaseStudiesPage() {
         </ul>
 
         {/* Pro Callout in Sidebar */}
+        {/* Buy Me a Coffee Support Card */}
         <div className="p-3 border-t border-gray-800 bg-surface-light/40">
-          {isPro ? (
-            <div className="bg-gradient-to-br from-green-900/30 to-emerald-950/20 border border-green-500/40 rounded-xl p-3 text-center">
-              <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-green-300 mb-1">
-                <CheckCircle2 size={14} className="text-green-400" /> Pro Member Active
-              </div>
-              <p className="text-[11px] text-gray-300 leading-relaxed">
-                Full Staff follow-up answers, vector blueprints & capacity math unlocked.
-              </p>
+          <div className="bg-gradient-to-br from-amber-500/10 via-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-xl p-3 text-center">
+            <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-white mb-1">
+              <Coffee size={14} className="text-yellow-400" /> Free & Open Content
             </div>
-          ) : (
-            <div className="bg-gradient-to-br from-primary/20 to-purple-900/20 border border-primary/30 rounded-xl p-3 text-center">
-              <div className="flex items-center justify-center gap-1 text-xs font-bold text-white mb-1">
-                <Sparkles size={13} className="text-yellow-400" /> Go Pro
-              </div>
-              <p className="text-[11px] text-gray-400 mb-2.5">
-                Download PDF architecture blueprints & formula sheet.
-              </p>
-              <button
-                onClick={() => setIsProModalOpen(true)}
-                className="w-full py-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white text-xs font-bold transition-all shadow-md shadow-primary/20"
-              >
-                Get Pro Pass ($29 / ₹999)
-              </button>
-            </div>
-          )}
+            <p className="text-[11px] text-gray-400 mb-2.5 leading-relaxed">
+              All 5 case studies & blueprints are 100% free. Like this prep platform?
+            </p>
+            <button
+              onClick={() => setIsProModalOpen(true)}
+              className="w-full py-1.5 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/40 text-yellow-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <Coffee size={13} />
+              <span>Buy Me a Coffee</span>
+            </button>
+          </div>
         </div>
       </aside>
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto p-6 lg:p-8">
         {selected === 'rules' ? (
-          <CapacityRulesPanel onOpenPro={() => setIsProModalOpen(true)} isPro={isPro} />
+          <CapacityRulesPanel />
         ) : (
           <CaseStudyDetail
             cs={hldCaseStudies.find(cs => cs.id === selected)!}
-            onOpenPro={() => setIsProModalOpen(true)}
-            isPro={isPro}
           />
         )}
       </main>
 
-      {/* Pro Monetization Modal */}
+      {/* Supporter / Buy Me a Coffee Modal */}
       <ProMonetizationModal
         isOpen={isProModalOpen}
         onClose={() => setIsProModalOpen(false)}

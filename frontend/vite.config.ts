@@ -23,4 +23,20 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/analytics'],
+          'vendor-icons': ['lucide-react'],
+          'vendor-xyflow': ['@xyflow/react'],
+          'vendor-docs': ['docx', 'mammoth', 'pdfjs-dist'],
+          'vendor-monaco': ['@monaco-editor/react'],
+          'vendor-marked': ['marked'],
+        },
+      },
+    },
+  },
 });
