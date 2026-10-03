@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import {
   Shield,
   QrCode,
@@ -7,7 +8,6 @@ import {
   DollarSign,
   RefreshCw,
   Copy,
-  Lock,
   Sparkles,
   UserCheck,
   Check
@@ -26,7 +26,7 @@ import {
 } from '../data/adminPaymentStore';
 
 export default function AdminPage() {
-  const { user, loginWithGoogle, logout } = useAuth();
+  const { user } = useAuth();
   const isOwner = user?.email?.toLowerCase() === 'baljindersinghcse@gmail.com';
   const [activeTab, setActiveTab] = useState<'payments' | 'orders' | 'licenses'>('payments');
 
@@ -98,45 +98,9 @@ export default function AdminPage() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  // If not logged in as the verified Owner, show Google sign-in gate
+  // Non-owners cannot see or access this page at all: silently redirect to home
   if (!isOwner) {
-    return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-6">
-        <div className="w-full max-w-md bg-surface border border-gray-700/80 rounded-2xl p-8 shadow-2xl text-center space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center mx-auto text-2xl">
-            <Lock size={28} />
-          </div>
-          <h2 className="text-xl font-bold text-white">Owner Admin Portal</h2>
-          <p className="text-xs text-gray-400 leading-relaxed">
-            {user
-              ? `Access Denied: You are signed in as ${user.email}. This portal is strictly restricted to the verified platform owner (baljindersinghcse@gmail.com).`
-              : 'This portal is restricted to the platform owner. Sign in with your owner Google account to manage payment QR codes, pricing, and approve customer orders.'}
-          </p>
-
-          <div className="pt-2">
-            {!user ? (
-              <button
-                onClick={loginWithGoogle}
-                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary-dark hover:to-purple-700 text-white font-bold text-xs shadow-lg shadow-primary/25 transition-all flex items-center justify-center gap-2"
-              >
-                <span>Sign In with Owner Google Account</span>
-              </button>
-            ) : (
-              <button
-                onClick={logout}
-                className="w-full py-2.5 rounded-xl bg-surface-light border border-gray-700 hover:bg-white/10 text-gray-300 font-bold text-xs transition-colors"
-              >
-                Sign Out & Switch Account
-              </button>
-            )}
-          </div>
-
-          <div className="text-[11px] text-gray-500 pt-2 border-t border-gray-800 font-mono">
-            Authorized Owner: baljindersinghcse@gmail.com
-          </div>
-        </div>
-      </div>
-    );
+    return <Navigate to="/" replace />;
   }
 
   const pendingCount = orders.filter((o) => o.status === 'pending').length;

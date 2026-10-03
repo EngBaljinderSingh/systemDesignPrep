@@ -259,7 +259,7 @@ export default function Navbar({ isOpen, onToggle }: NavbarProps) {
             <span className="text-sm leading-none shrink-0">{isLight ? '🌙' : '☀️'}</span>
             {isOpen && <span>{isLight ? 'Dark mode' : 'Light mode'}</span>}
           </button>
-          {isOpen && (
+          {isOpen && isAdmin && (
             <NavLink
               to="/admin"
               title="Creator Admin Portal"
