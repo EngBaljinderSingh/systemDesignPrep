@@ -10,7 +10,11 @@ import {
   Copy,
   Sparkles,
   UserCheck,
-  Check
+  Check,
+  Users,
+  Search,
+  ExternalLink,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -20,20 +24,25 @@ import {
   updateOrderStatus,
   getLicenseKeys,
   generateLicenseKey,
+  getActiveProUsers,
+  revokeProAccessByEmail,
   type PaymentSettings,
   type OrderSubmission,
   type LicenseKey,
+  type ActiveProUser,
 } from '../data/adminPaymentStore';
 
 export default function AdminPage() {
   const { user } = useAuth();
   const isOwner = user?.email?.toLowerCase() === 'baljindersinghcse@gmail.com';
-  const [activeTab, setActiveTab] = useState<'payments' | 'orders' | 'licenses'>('payments');
+  const [activeTab, setActiveTab] = useState<'payments' | 'orders' | 'licenses' | 'users'>('users');
 
   // Settings State
   const [settings, setSettings] = useState<PaymentSettings>(getPaymentSettings());
   const [orders, setOrders] = useState<OrderSubmission[]>(getOrders());
   const [licenses, setLicenses] = useState<LicenseKey[]>(getLicenseKeys());
+  const [activeUsers, setActiveUsers] = useState<ActiveProUser[]>(getActiveProUsers());
+  const [userSearch, setUserSearch] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [manualEmail, setManualEmail] = useState('');
   const [manualSuccess, setManualSuccess] = useState(false);
@@ -43,6 +52,7 @@ export default function AdminPage() {
     setSettings(getPaymentSettings());
     setOrders(getOrders());
     setLicenses(getLicenseKeys());
+    setActiveUsers(getActiveProUsers());
   }, []);
 
   // QR Code Image Upload Handler (converts to base64 Data URL)
@@ -139,17 +149,20 @@ export default function AdminPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-gray-800 pb-2">
+      <div className="flex items-center gap-2 border-b border-gray-800 pb-2 overflow-x-auto">
         <button
-          onClick={() => setActiveTab('payments')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-            activeTab === 'payments'
+          onClick={() => setActiveTab('users')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all relative ${
+            activeTab === 'users'
               ? 'bg-primary text-white shadow-md shadow-primary/20'
               : 'text-gray-400 hover:text-white hover:bg-white/5'
           }`}
         >
-          <QrCode size={14} />
-          <span>Payment & QR Setup</span>
+          <Users size={14} />
+          <span>Active Pro Members</span>
+          <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-green-500/20 text-green-300 border border-green-500/30">
+            {activeUsers.length}
+          </span>
         </button>
 
         <button
@@ -170,6 +183,18 @@ export default function AdminPage() {
         </button>
 
         <button
+          onClick={() => setActiveTab('payments')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeTab === 'payments'
+              ? 'bg-primary text-white shadow-md shadow-primary/20'
+              : 'text-gray-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <QrCode size={14} />
+          <span>Payment & QR Setup</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('licenses')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
             activeTab === 'licenses'
@@ -181,6 +206,171 @@ export default function AdminPage() {
           <span>License Keys & Manual Grants</span>
         </button>
       </div>
+
+      {/* ── TAB 0: Active Pro Members Directory ── */}
+      {activeTab === 'users' && (
+        <div className="space-y-6">
+          {/* Top Info & Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-surface-light border border-gray-700/80 rounded-2xl p-5 space-y-1">
+              <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider block">
+                Total Active Pro Members
+              </span>
+              <div className="text-3xl font-black text-white font-mono flex items-center gap-2">
+                <Users size={22} className="text-primary" />
+                <span>{activeUsers.length}</span>
+              </div>
+              <span className="text-[11px] text-green-400">All features & Q&A unlocked</span>
+            </div>
+
+            <div className="bg-surface-light border border-gray-700/80 rounded-2xl p-5 space-y-1">
+              <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider block">
+                Est. Paid Revenue
+              </span>
+              <div className="text-3xl font-black text-green-400 font-mono">
+                ₹{activeUsers.length * 999}
+              </div>
+              <span className="text-[11px] text-gray-400">Direct via Google Pay & UPI</span>
+            </div>
+
+            <div className="bg-surface-light border border-gray-700/80 rounded-2xl p-5 space-y-2 flex flex-col justify-between">
+              <div>
+                <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider block">
+                  Firebase Cloud Directory
+                </span>
+                <p className="text-[11px] text-gray-300 mt-1">
+                  View all Google OAuth accounts in real time.
+                </p>
+              </div>
+              <a
+                href="https://console.firebase.google.com/project/sdp-prep/authentication/users"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-bold"
+              >
+                <span>Open Firebase Users Console</span>
+                <ExternalLink size={12} />
+              </a>
+            </div>
+          </div>
+
+          {/* Directory Table */}
+          <div className="bg-surface-light border border-gray-700/80 rounded-2xl p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Users size={18} className="text-primary" /> Active Pro Customer Directory
+                </h3>
+                <p className="text-xs text-gray-400">
+                  Real-time list of members with lifetime access to all blueprints and staff solutions.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-64">
+                  <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search member email..."
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-black/40 border border-gray-700 text-white focus:border-primary focus:outline-none"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveUsers(getActiveProUsers())}
+                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 border border-gray-700 transition-colors"
+                  title="Refresh users"
+                >
+                  <RefreshCw size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-800 bg-black/20 text-gray-400 uppercase font-semibold">
+                    <th className="text-left px-4 py-3">Member</th>
+                    <th className="text-left px-4 py-3">Access Tier</th>
+                    <th className="text-left px-4 py-3">Amount</th>
+                    <th className="text-left px-4 py-3">Source</th>
+                    <th className="text-left px-4 py-3">Activated Date</th>
+                    <th className="text-left px-4 py-3">Status</th>
+                    <th className="text-right px-4 py-3">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800">
+                  {activeUsers
+                    .filter((u) =>
+                      u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
+                      (u.name && u.name.toLowerCase().includes(userSearch.toLowerCase()))
+                    )
+                    .map((member, i) => (
+                      <tr key={i} className="hover:bg-white/3 transition-colors">
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-purple-600 text-white font-bold flex items-center justify-center text-xs uppercase shrink-0">
+                              {member.name ? member.name[0] : member.email[0]}
+                            </div>
+                            <div>
+                              <div className="font-bold text-white">{member.name || 'Pro Candidate'}</div>
+                              <div className="text-[11px] text-gray-400 font-mono">{member.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className="font-bold text-primary text-[11px] uppercase">
+                            {member.plan}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 font-mono text-green-400 font-semibold">
+                          {member.amount || '₹999'}
+                        </td>
+                        <td className="px-4 py-3.5 text-gray-300 font-mono text-[11px]">
+                          {member.source}
+                        </td>
+                        <td className="px-4 py-3.5 text-gray-400">
+                          {new Date(member.activatedAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-500/20 text-green-300 border border-green-500/40">
+                            <Sparkles size={10} className="text-yellow-300" />
+                            <span>Active Pro</span>
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm(`Revoke Pro access for ${member.email}?`)) {
+                                revokeProAccessByEmail(member.email);
+                                setActiveUsers(getActiveProUsers());
+                                setOrders(getOrders());
+                              }
+                            }}
+                            className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800 transition-colors"
+                            title="Revoke Pro Access"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  {activeUsers.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="text-center py-8 text-gray-500 text-xs">
+                        No active Pro members recorded yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── TAB 1: Payment & QR Setup ── */}
       {activeTab === 'payments' && (

@@ -229,3 +229,100 @@ function grantProAccessByEmail(email: string) {
     console.error(err);
   }
 }
+
+export interface ActiveProUser {
+  email: string;
+  name?: string;
+  plan: string;
+  source: string;
+  activatedAt: string;
+  amount?: string;
+}
+
+export function getActiveProUsers(): ActiveProUser[] {
+  const usersMap = new Map<string, ActiveProUser>();
+
+  // 1. From approved orders
+  const orders = getOrders();
+  orders.forEach((ord) => {
+    if (ord.status === 'approved' && ord.userEmail) {
+      usersMap.set(ord.userEmail.toLowerCase(), {
+        email: ord.userEmail,
+        name: ord.userName || ord.userEmail.split('@')[0],
+        plan: ord.plan === 'lifetime' ? 'Lifetime Pass' : 'Supporter Pass',
+        source: ord.paymentMethod === 'qr_upi' ? 'UPI / QR Payment' : 'Stripe / Card',
+        activatedAt: ord.submittedAt,
+        amount: ord.amount,
+      });
+    }
+  });
+
+  // 2. From verified pro emails list
+  try {
+    const rawList = localStorage.getItem('sdp_verified_pro_emails');
+    if (rawList) {
+      const emails: string[] = JSON.parse(rawList);
+      emails.forEach((email) => {
+        const lower = email.toLowerCase();
+        if (!usersMap.has(lower)) {
+          usersMap.set(lower, {
+            email,
+            name: email.split('@')[0],
+            plan: 'Lifetime Pass',
+            source: 'Verified Pro List / Instant Activation',
+            activatedAt: new Date().toISOString(),
+            amount: '₹999',
+          });
+        }
+      });
+    }
+  } catch (e) {
+    console.error(e);
+  }
+
+  // 3. Current active user if Pro
+  try {
+    const activeUser = localStorage.getItem('sdp_active_user');
+    const isPro = localStorage.getItem('sdp_pro_user') === 'true';
+    if (activeUser && isPro) {
+      const u = JSON.parse(activeUser);
+      if (u.email && !usersMap.has(u.email.toLowerCase())) {
+        usersMap.set(u.email.toLowerCase(), {
+          email: u.email,
+          name: u.name || u.email.split('@')[0],
+          plan: 'Lifetime Pass',
+          source: 'Current Google User Session',
+          activatedAt: new Date().toISOString(),
+          amount: '₹999',
+        });
+      }
+    }
+  } catch (e) {
+    console.error(e);
+  }
+
+  return Array.from(usersMap.values());
+}
+
+export function revokeProAccessByEmail(email: string): void {
+  try {
+    const proList: string[] = JSON.parse(localStorage.getItem('sdp_verified_pro_emails') || '[]');
+    const filtered = proList.filter((e) => e.toLowerCase() !== email.toLowerCase());
+    localStorage.setItem('sdp_verified_pro_emails', JSON.stringify(filtered));
+
+    // Also update order status if exists
+    const orders = getOrders();
+    let updated = false;
+    orders.forEach((o) => {
+      if (o.userEmail.toLowerCase() === email.toLowerCase()) {
+        o.status = 'rejected';
+        updated = true;
+      }
+    });
+    if (updated) {
+      localStorage.setItem('sdp_admin_orders', JSON.stringify(orders));
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
