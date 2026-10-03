@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Menu, Sparkles } from 'lucide-react';
+import { Menu, Sparkles, Shield, LogOut, LogIn } from 'lucide-react';
 import { useTheme } from '../ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import ProMonetizationModal from './ProMonetizationModal';
+import AuthModal from './AuthModal';
 
 interface NavItem {
   to: string;
@@ -17,7 +19,7 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const navGroups: NavGroup[] = [
+const baseNavGroups: NavGroup[] = [
   {
     sectionTitle: 'Core',
     items: [
@@ -60,12 +62,25 @@ interface NavbarProps {
 
 export default function Navbar({ isOpen, onToggle }: NavbarProps) {
   const { theme, toggleTheme } = useTheme();
+  const { user, isAdmin, isPro, logout, openAuthModal } = useAuth();
   const [isProOpen, setIsProOpen] = useState(false);
   const isLight = theme === 'light';
 
   const border = isLight ? 'border-gray-200' : 'border-gray-800';
   const bg = isLight ? 'bg-white' : 'bg-gray-950';
-  const textMuted = isLight ? 'text-gray-500' : 'text-gray-400';
+
+  // Include Admin group if user is admin
+  const navGroups = isAdmin
+    ? [
+        ...baseNavGroups,
+        {
+          sectionTitle: 'Administration',
+          items: [
+            { to: '/admin', label: 'Admin Portal', icon: '⚙️', badge: 'Admin' },
+          ],
+        },
+      ]
+    : baseNavGroups;
 
   return (
     <>
@@ -95,6 +110,59 @@ export default function Navbar({ isOpen, onToggle }: NavbarProps) {
               </span>
             )}
           </div>
+        </div>
+
+        {/* ── User Account Bar ── */}
+        <div className={`p-2 border-b ${border} bg-surface-light/40`}>
+          {user ? (
+            <div className="flex items-center justify-between gap-2 p-1.5 rounded-xl bg-black/20 border border-gray-800">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <img
+                  src={user.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
+                  alt={user.name}
+                  className="w-7 h-7 rounded-lg object-cover bg-primary/20 shrink-0"
+                />
+                {isOpen && (
+                  <div className="truncate text-left leading-tight">
+                    <div className="text-xs font-bold text-white truncate flex items-center gap-1">
+                      <span>{user.name}</span>
+                      {isAdmin ? (
+                        <span className="text-[9px] font-mono px-1 rounded bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30">
+                          ADMIN
+                        </span>
+                      ) : isPro ? (
+                        <span className="text-[9px] font-mono px-1 rounded bg-yellow-500/20 text-yellow-300 font-bold border border-yellow-500/30">
+                          PRO
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-mono px-1 rounded bg-gray-700 text-gray-300">
+                          FREE
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-gray-400 truncate">{user.email}</div>
+                  </div>
+                )}
+              </div>
+              {isOpen && (
+                <button
+                  onClick={logout}
+                  title="Sign Out"
+                  className="p-1 rounded-lg hover:bg-white/10 text-gray-400 hover:text-red-400 transition-colors shrink-0"
+                >
+                  <LogOut size={13} />
+                </button>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={openAuthModal}
+              className="w-full flex items-center justify-center gap-2 py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-gray-700/80 text-xs font-bold text-white transition-colors"
+            >
+              <LogIn size={13} className="text-primary" />
+              {isOpen && <span>Sign In / Sign Up</span>}
+            </button>
+          )}
         </div>
 
         {/* ── Nav links grouped ── */}
@@ -127,7 +195,11 @@ export default function Navbar({ isOpen, onToggle }: NavbarProps) {
                     {isOpen && <span className="truncate">{link.label}</span>}
                   </div>
                   {isOpen && link.badge && (
-                    <span className="text-[9px] px-1.5 py-0.2 rounded-full font-bold bg-primary/20 text-primary uppercase">
+                    <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold uppercase ${
+                      link.badge === 'Admin'
+                        ? 'bg-purple-500/20 text-purple-300'
+                        : 'bg-primary/20 text-primary'
+                    }`}>
                       {link.badge}
                     </span>
                   )}
@@ -138,22 +210,24 @@ export default function Navbar({ isOpen, onToggle }: NavbarProps) {
         </nav>
 
         {/* ── Go Pro / Monetization Trigger Button ── */}
-        <div className={`p-2 border-t ${border}`}>
-          <button
-            onClick={() => setIsProOpen(true)}
-            className={`w-full flex items-center justify-center gap-2 rounded-xl py-2 px-2.5 text-xs font-bold transition-all shadow-sm ${
-              isOpen
-                ? 'bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-dark hover:to-indigo-700 text-white'
-                : 'bg-primary text-white p-2'
-            }`}
-            title="Unlock System Design Prep Pro"
-          >
-            <Sparkles size={14} className="text-yellow-300 shrink-0" />
-            {isOpen && <span>Go Pro ($29)</span>}
-          </button>
-        </div>
+        {!isPro && (
+          <div className={`p-2 border-t ${border}`}>
+            <button
+              onClick={() => setIsProOpen(true)}
+              className={`w-full flex items-center justify-center gap-2 rounded-xl py-2 px-2.5 text-xs font-bold transition-all shadow-sm ${
+                isOpen
+                  ? 'bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-dark hover:to-indigo-700 text-white'
+                  : 'bg-primary text-white p-2'
+              }`}
+              title="Unlock System Design Prep Pro"
+            >
+              <Sparkles size={14} className="text-yellow-300 shrink-0" />
+              {isOpen && <span>Go Pro ($29)</span>}
+            </button>
+          </div>
+        )}
 
-        {/* ── Footer: theme toggle ── */}
+        {/* ── Footer: theme toggle & quick admin ── */}
         <div className={`border-t ${border} p-2 shrink-0 flex items-center justify-between`}>
           <button
             onClick={toggleTheme}
@@ -166,14 +240,19 @@ export default function Navbar({ isOpen, onToggle }: NavbarProps) {
             {isOpen && <span>{isLight ? 'Dark mode' : 'Light mode'}</span>}
           </button>
           {isOpen && (
-            <span className={`px-2 text-[10px] font-mono ${textMuted}`}>
-              v1.0
-            </span>
+            <NavLink
+              to="/admin"
+              title="Creator Admin Portal"
+              className="px-2 py-0.5 rounded text-[10px] font-mono text-gray-500 hover:text-purple-400 transition-colors flex items-center gap-1"
+            >
+              <Shield size={10} /> Admin
+            </NavLink>
           )}
         </div>
       </aside>
 
       <ProMonetizationModal isOpen={isProOpen} onClose={() => setIsProOpen(false)} />
+      <AuthModal />
     </>
   );
 }

@@ -14,8 +14,10 @@ import InterviewQuestionsPage from './pages/InterviewQuestionsPage';
 import HackerRankPage from './pages/HackerRankPage';
 import MockInterviewPage from './pages/MockInterviewPage';
 import { ThemeProvider, useTheme } from './ThemeContext';
+import { AuthProvider } from './context/AuthContext';
 import ResumePage from './pages/ResumePage';
 import HLDCaseStudiesPage from './pages/HLDCaseStudiesPage';
+import AdminPage from './pages/AdminPage';
 
 function AppContent() {
   const { theme } = useTheme();
@@ -46,6 +48,7 @@ function AppContent() {
               <Route path="/mock-interview" element={<MockInterviewPage />} />
               <Route path="/hackerrank" element={<HackerRankPage />} />
               <Route path="/resume" element={<ResumePage />} />
+              <Route path="/admin" element={<AdminPage />} />
             </Routes>
           </main>
         </div>
@@ -57,7 +60,9 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </ThemeProvider>
   );
 }
