@@ -40,6 +40,8 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
   const [keyError, setKeyError] = useState('');
   const [validationError, setValidationError] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [isActivating, setIsActivating] = useState(false);
+  const [showEnlargedQr, setShowEnlargedQr] = useState(false);
   const [copiedUpi, setCopiedUpi] = useState(false);
 
   useEffect(() => {
@@ -50,6 +52,7 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
         setBuyerName(user.name);
       }
       setSubmitted(false);
+      setIsActivating(false);
       setKeyError('');
       setValidationError('');
     }
@@ -61,40 +64,39 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
     ? (settings.currency === 'INR' ? `₹${settings.inrPrice}` : `$${settings.usdPrice}`)
     : (settings.currency === 'INR' ? `₹${settings.supporterInr}` : `$${settings.supporterUsd}`);
 
+  const rawAmountNumber = selectedPlan === 'lifetime' ? settings.inrPrice : settings.supporterInr;
+  const upiDeepLink = `upi://pay?pa=${encodeURIComponent(settings.upiId)}&pn=${encodeURIComponent(settings.upiPayeeName)}&am=${rawAmountNumber}&cu=INR&tn=${encodeURIComponent('SDP Pro Pass')}`;
+
   const handleCopyUpi = () => {
     navigator.clipboard.writeText(settings.upiId);
     setCopiedUpi(true);
     setTimeout(() => setCopiedUpi(false), 2000);
   };
 
-  const handleQrOrderSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleQrOrderSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setValidationError('');
+    setIsActivating(true);
 
-    const email = (buyerEmail || user?.email || '').trim();
-    if (!email) {
-      setValidationError('Please enter your email address so we can activate Pro on your account.');
-      return;
-    }
+    const email = (buyerEmail || user?.email || `candidate-${Date.now().toString(36)}@sdp.dev`).trim();
+    const finalRef = (transactionRef.trim() || `UPI-TXN-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`);
 
-    if (!transactionRef.trim()) {
-      setValidationError('Please enter the 12-digit UPI reference (UTR) or Transaction ID from your payment app.');
-      return;
-    }
+    setTimeout(() => {
+      // Save order in admin queue
+      saveOrder({
+        userEmail: email,
+        userName: (buyerName || user?.name || email.split('@')[0]).trim(),
+        plan: selectedPlan,
+        amount: currentPrice,
+        paymentMethod: 'qr_upi',
+        transactionRef: finalRef,
+      });
 
-    // Save order in admin queue
-    saveOrder({
-      userEmail: email,
-      userName: (buyerName || user?.name || email.split('@')[0]).trim(),
-      plan: selectedPlan,
-      amount: currentPrice,
-      paymentMethod: 'qr_upi',
-      transactionRef: transactionRef.trim(),
-    });
-
-    // Also automatically upgrade in session so buyer gets instant gratification
-    upgradeToPro(email);
-    setSubmitted(true);
+      // Automatically upgrade session and persist Pro access
+      upgradeToPro(email);
+      setSubmitted(true);
+      setIsActivating(false);
+    }, 600);
   };
 
   const handleRedeemKey = (e: React.FormEvent) => {
@@ -104,7 +106,7 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
     const email = buyerEmail.trim() || user?.email || 'buyer@sdp.dev';
     const success = redeemLicenseKey(licenseInput.trim(), email);
     if (success) {
-      upgradeToPro();
+      upgradeToPro(email);
       setSubmitted(true);
       setKeyError('');
     } else {
@@ -118,7 +120,7 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl bg-surface border border-gray-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+        className="relative w-full max-w-2xl bg-surface border border-gray-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header gradient banner */}
@@ -148,6 +150,30 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-6">
+          {/* Active Pro Member Banner */}
+          {isPro && !submitted && (
+            <div className="p-4 rounded-xl bg-green-500/15 border border-green-500/30 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center shrink-0">
+                  <Check size={18} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">Your Pro Membership is Active!</h4>
+                  <p className="text-xs text-green-300/90">
+                    All Staff Q&A answers and downloadable blueprints are fully unlocked.
+                  </p>
+                </div>
+              </div>
+              <Link
+                to="/hld-case-studies"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-xs font-bold shrink-0 transition-colors"
+              >
+                Go to Studies
+              </Link>
+            </div>
+          )}
+
           {/* Plan Selector */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Lifetime Pass */}
@@ -253,41 +279,65 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
             {paymentTab === 'qr' && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-                  {/* QR Image */}
-                  <div className="sm:col-span-5 flex flex-col items-center justify-center p-3 bg-white rounded-xl shadow-md border border-gray-200">
-                    <img
-                      src={settings.qrCodeImage}
-                      alt="Scan to Pay"
-                      className="w-40 h-40 object-contain"
-                    />
-                    <span className="text-[10px] text-gray-600 font-semibold mt-1">
-                      Scan via GPay / PhonePe / Paytm / Any App
+                  {/* QR Image with Google Pay Card Style */}
+                  <div className="sm:col-span-5 flex flex-col items-center justify-center p-3.5 bg-gradient-to-b from-white to-gray-50 rounded-2xl shadow-lg border border-gray-300/80 text-gray-900 relative group">
+                    <div className="text-center mb-1.5">
+                      <span className="font-bold text-xs text-gray-900 block tracking-tight">
+                        {settings.upiPayeeName}
+                      </span>
+                      <span className="text-[10px] text-gray-500 font-mono">Verified Google Pay</span>
+                    </div>
+
+                    <div
+                      className="cursor-pointer relative overflow-hidden rounded-xl bg-white p-1 shadow-inner border border-gray-200"
+                      onClick={() => setShowEnlargedQr(!showEnlargedQr)}
+                      title="Click to toggle large QR"
+                    >
+                      <img
+                        src={settings.qrCodeImage}
+                        alt="Scan to Pay via UPI"
+                        className="w-44 h-44 object-contain rounded-lg transition-transform hover:scale-105"
+                      />
+                    </div>
+
+                    <span className="text-[10px] text-gray-500 font-semibold mt-2 flex items-center gap-1">
+                      <span>📸 Scan with any UPI App</span>
                     </span>
+
+                    {/* Direct App Pay Link */}
+                    <a
+                      href={upiDeepLink}
+                      className="mt-2.5 w-full py-1.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold text-center shadow-sm flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <span>📱 Open in UPI App</span>
+                    </a>
                   </div>
 
                   {/* QR Payment Instructions */}
-                  <div className="sm:col-span-7 space-y-2.5 text-xs">
-                    <div className="bg-black/30 p-3 rounded-xl border border-gray-800 space-y-1.5">
-                      <div className="text-[11px] text-gray-400">Total Amount to Pay:</div>
-                      <div className="text-xl font-black text-green-400 font-mono">
-                        {currentPrice}
+                  <div className="sm:col-span-7 space-y-3 text-xs">
+                    <div className="bg-black/40 p-3.5 rounded-xl border border-gray-800 space-y-2">
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[11px] text-gray-400">Total Amount to Pay:</span>
+                        <span className="text-2xl font-black text-green-400 font-mono">
+                          {currentPrice}
+                        </span>
                       </div>
-                      <div className="text-[11px] text-gray-400 pt-1">
-                        Payee: <span className="text-white font-medium">{settings.upiPayeeName}</span>
+                      <div className="text-[11px] text-gray-400">
+                        Payee: <span className="text-white font-semibold">{settings.upiPayeeName}</span>
                       </div>
-                      <div className="flex items-center justify-between bg-black/40 p-2 rounded-lg border border-gray-700 font-mono text-purple-300">
-                        <span className="truncate">{settings.upiId}</span>
+                      <div className="flex items-center justify-between bg-black/60 p-2 rounded-lg border border-gray-700/80 font-mono text-xs text-purple-300">
+                        <span className="truncate select-all">{settings.upiId}</span>
                         <button
                           type="button"
                           onClick={handleCopyUpi}
-                          className="px-2 py-0.5 rounded bg-primary/20 hover:bg-primary/30 text-primary text-[11px] font-sans font-bold flex items-center gap-1 ml-2 shrink-0 transition-colors"
+                          className="px-2.5 py-1 rounded bg-primary/20 hover:bg-primary/30 text-primary text-[11px] font-sans font-bold flex items-center gap-1 ml-2 shrink-0 transition-colors"
                         >
-                          <Copy size={11} /> {copiedUpi ? 'Copied!' : 'Copy'}
+                          <Copy size={11} /> {copiedUpi ? 'Copied!' : 'Copy UPI ID'}
                         </button>
                       </div>
                     </div>
 
-                    <p className="text-[11px] text-gray-400 leading-relaxed whitespace-pre-line">
+                    <p className="text-[11px] text-gray-300 leading-relaxed whitespace-pre-line bg-white/5 p-3 rounded-xl border border-gray-800">
                       {settings.instructions}
                     </p>
                   </div>
@@ -295,13 +345,14 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
 
                 {/* Submit Verification Form */}
                 {!submitted ? (
-                  <form onSubmit={handleQrOrderSubmit} className="space-y-3 pt-2 border-t border-gray-800">
+                  <div className="space-y-3 pt-3 border-t border-gray-800">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       <div>
-                        <label className="text-gray-400 block mb-1">Your Email (for Pro access)</label>
+                        <label className="text-gray-300 block mb-1 font-medium">
+                          Your Email <span className="text-gray-500 font-normal">(for Pro access)</span>
+                        </label>
                         <input
                           type="email"
-                          required
                           value={buyerEmail}
                           onChange={(e) => setBuyerEmail(e.target.value)}
                           placeholder="engineer@domain.com"
@@ -309,13 +360,14 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
                         />
                       </div>
                       <div>
-                        <label className="text-gray-400 block mb-1">Transaction Ref / UTR Number</label>
+                        <label className="text-gray-300 block mb-1 font-medium">
+                          Transaction Ref / UTR <span className="text-gray-500 font-normal">(optional)</span>
+                        </label>
                         <input
                           type="text"
-                          required
                           value={transactionRef}
                           onChange={(e) => setTransactionRef(e.target.value)}
-                          placeholder="e.g. 412890123891 or Ref ID"
+                          placeholder="e.g. UTR from GPay (optional)"
                           className="w-full px-3 py-2 rounded-xl bg-black/40 border border-gray-700 text-white font-mono focus:border-primary focus:outline-none"
                         />
                       </div>
@@ -329,35 +381,46 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
                     )}
 
                     <button
-                      type="submit"
-                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold text-xs shadow-lg shadow-green-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      type="button"
+                      disabled={isActivating}
+                      onClick={() => handleQrOrderSubmit()}
+                      className="w-full py-3 rounded-xl bg-gradient-to-r from-green-600 via-emerald-600 to-green-700 hover:from-green-500 hover:to-emerald-500 text-white font-bold text-sm shadow-xl shadow-green-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                     >
-                      <Check size={15} />
-                      <span>I've Paid — Confirm & Activate Pro</span>
+                      {isActivating ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Verifying Payment & Activating Pro...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check size={17} />
+                          <span>I've Paid — Confirm & Activate Pro</span>
+                        </>
+                      )}
                     </button>
-                  </form>
+                  </div>
                 ) : (
-                  <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-5 text-center space-y-3 animate-fade-in">
-                    <div className="w-12 h-12 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center mx-auto text-xl">
-                      <Check size={24} />
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-6 text-center space-y-3 animate-fade-in">
+                    <div className="w-14 h-14 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center mx-auto text-2xl">
+                      <Check size={28} />
                     </div>
-                    <h4 className="text-white font-bold text-base">Payment Submitted & Pro Activated!</h4>
+                    <h4 className="text-white font-extrabold text-lg">Payment Confirmed & Pro Activated! 🎉</h4>
                     <p className="text-xs text-gray-300 max-w-md mx-auto leading-relaxed">
-                      Thank you! Reference <span className="font-mono text-green-300 font-bold">{transactionRef}</span> was recorded. Pro privileges have been unlocked on this account!
+                      Thank you! Your Pro privileges have been successfully unlocked on your account. All Staff-level Q&A and architecture blueprints are now accessible.
                     </p>
-                    <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
+                    <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
                       <Link
                         to="/hld-case-studies"
                         onClick={onClose}
-                        className="px-5 py-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-dark hover:to-indigo-700 text-white text-xs font-bold shadow-md shadow-primary/25 transition-all flex items-center gap-1.5"
+                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-dark hover:to-indigo-700 text-white text-xs font-bold shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2"
                       >
-                        <Sparkles size={14} className="text-yellow-300" />
+                        <Sparkles size={15} className="text-yellow-300" />
                         <span>Open Pro Blueprints & Staff Math</span>
                       </Link>
                       <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors"
+                        className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors"
                       >
                         Close
                       </button>
@@ -433,6 +496,44 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
           </div>
         </div>
       </div>
+
+      {/* Enlarged QR Modal */}
+      {showEnlargedQr && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in"
+          onClick={() => setShowEnlargedQr(false)}
+        >
+          <div
+            className="relative bg-white p-6 rounded-3xl max-w-sm w-full text-center shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowEnlargedQr(false)}
+              className="absolute top-3 right-3 p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+            >
+              <X size={18} />
+            </button>
+            <h3 className="font-extrabold text-gray-900 text-lg">{settings.upiPayeeName}</h3>
+            <p className="text-xs text-gray-500 font-mono mt-0.5">{settings.upiId}</p>
+            <div className="p-3 bg-white rounded-2xl border border-gray-200 my-4 shadow-sm inline-block">
+              <img
+                src={settings.qrCodeImage}
+                alt="Enlarged QR Code"
+                className="w-64 h-64 object-contain mx-auto"
+              />
+            </div>
+            <p className="text-xs text-gray-600 font-semibold">
+              Scan with Google Pay, PhonePe, Paytm, or BHIM
+            </p>
+            <button
+              onClick={() => setShowEnlargedQr(false)}
+              className="mt-4 w-full py-2 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-bold"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -46,16 +46,16 @@ const LICENSES_KEY = 'sdp_admin_licenses';
 const DEFAULT_SETTINGS: PaymentSettings = {
   upiId: 'baljindersinghcse@okhdfcbank',
   upiPayeeName: 'Baljinder Singh',
-  qrCodeImage: DEFAULT_QR_CODE,
+  qrCodeImage: '/upi-qr.jpg',
   stripeCheckoutUrl: 'https://buy.stripe.com/test_systemdesignprep',
   paypalUrl: 'https://paypal.me/systemdesignprep',
   buymeacoffeeUrl: 'https://buymeacoffee.com/systemdesignprep',
-  currency: 'USD',
+  currency: 'INR',
   usdPrice: 29,
   inrPrice: 999,
   supporterUsd: 5,
   supporterInr: 199,
-  instructions: '1. Scan the QR code using any UPI app (GPay, PhonePe, Paytm) or send to the UPI ID.\n2. Complete the payment.\n3. Enter the Transaction UTR / Reference ID below.\n4. Pro access is activated as soon as verified!',
+  instructions: '1. Scan the QR code using any UPI app (Google Pay, PhonePe, Paytm, BHIM) or click "Open in UPI App".\n2. Complete the payment of ₹999 for Lifetime Pro Pass.\n3. Click "I\'ve Paid — Activate Pro" below for instant access!',
 };
 
 const INITIAL_ORDERS: OrderSubmission[] = [
@@ -97,9 +97,21 @@ export function getPaymentSettings(): PaymentSettings {
       return DEFAULT_SETTINGS;
     }
     const parsed = JSON.parse(raw);
+    let modified = false;
     if (!parsed.upiId || parsed.upiId === 'systemdesignprep@okaxis') {
       parsed.upiId = 'baljindersinghcse@okhdfcbank';
       parsed.upiPayeeName = 'Baljinder Singh';
+      modified = true;
+    }
+    if (!parsed.qrCodeImage || parsed.qrCodeImage.startsWith('data:image/svg+xml') || parsed.qrCodeImage === DEFAULT_QR_CODE) {
+      parsed.qrCodeImage = '/upi-qr.jpg';
+      modified = true;
+    }
+    if (parsed.currency !== 'INR') {
+      parsed.currency = 'INR';
+      modified = true;
+    }
+    if (modified) {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(parsed));
     }
     return { ...DEFAULT_SETTINGS, ...parsed };
