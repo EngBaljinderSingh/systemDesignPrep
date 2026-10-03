@@ -33,7 +33,7 @@ import {
 } from '../data/adminPaymentStore';
 
 export default function AdminPage() {
-  const { user } = useAuth();
+  const { user, previewAsFree, togglePreviewAsFree } = useAuth();
   const isOwner = user?.email?.toLowerCase() === 'baljindersinghcse@gmail.com';
   const [activeTab, setActiveTab] = useState<'payments' | 'orders' | 'licenses' | 'users'>('users');
 
@@ -135,8 +135,26 @@ export default function AdminPage() {
           </p>
         </div>
 
-        {/* Quick Stats Pills */}
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Quick Stats Pills & Preview Toggle */}
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={togglePreviewAsFree}
+            className={`px-3.5 py-2 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm ${
+              previewAsFree
+                ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300'
+                : 'bg-white/5 border-gray-700 text-gray-300 hover:text-white'
+            }`}
+            title="Toggle between full Creator Pro mode and non-paying Candidate Free mode to test paywalls"
+          >
+            <span>{previewAsFree ? '👀 Preview: Free Candidate' : '👑 Mode: Creator (Pro)'}</span>
+            <span
+              className={`w-2 h-2 rounded-full ${
+                previewAsFree ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'
+              }`}
+            />
+          </button>
+
           <div className="bg-black/30 border border-gray-800 rounded-xl px-3.5 py-2 text-center">
             <div className="text-[10px] text-gray-400 uppercase font-semibold">Pending Verifications</div>
             <div className="text-lg font-black text-yellow-400 font-mono">{pendingCount}</div>

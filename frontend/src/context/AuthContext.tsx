@@ -57,6 +57,8 @@ interface AuthContextType {
   isAuthModalOpen: boolean;
   openAuthModal: () => void;
   closeAuthModal: () => void;
+  previewAsFree: boolean;
+  togglePreviewAsFree: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -107,6 +109,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [previewAsFree, setPreviewAsFree] = useState<boolean>(() => {
+    return localStorage.getItem('sdp_preview_as_free') === 'true';
+  });
+
+  const togglePreviewAsFree = () => {
+    setPreviewAsFree((prev) => {
+      const next = !prev;
+      localStorage.setItem('sdp_preview_as_free', String(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (user) {
@@ -545,7 +558,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         isAdmin: Boolean(user?.email && user.email.toLowerCase() === OWNER_EMAIL),
-        isPro: Boolean(user?.isPro || (user?.email && user.email.toLowerCase() === OWNER_EMAIL)),
+        isPro: previewAsFree
+          ? false
+          : Boolean(user?.isPro || (user?.email && user.email.toLowerCase() === OWNER_EMAIL)),
         login,
         loginWithGoogle,
         loginWithSocial,
@@ -557,6 +572,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthModalOpen,
         openAuthModal,
         closeAuthModal,
+        previewAsFree,
+        togglePreviewAsFree,
       }}
     >
       {children}
