@@ -406,6 +406,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(sessionUser);
       setIsAuthModalOpen(false);
     } catch (err: any) {
+      if (err.code === 'auth/unauthorized-domain') {
+        const host = window.location.hostname || 'localhost';
+        throw new Error(
+          `Domain not authorized: '${host}' is not added in Firebase Console. Go to Firebase Console > Authentication > Settings > Authorized domains, and add '${host}'.`
+        );
+      }
       if (err.code === 'auth/operation-not-allowed') {
         throw new Error(
           'Google sign-in is not yet enabled in Firebase Console. Go to Firebase Console > Authentication > Sign-in method, click Google, and enable it.'
