@@ -65,6 +65,18 @@ const CURRENT_USER_KEY = 'sdp_current_user_session';
 const USERS_DB_KEY = 'sdp_registered_users_db';
 const PRO_EMAILS_KEY = 'sdp_verified_pro_emails';
 
+// Authorized admin emails list
+export const ADMIN_EMAILS = [
+  'admin',
+  'admin@sdp.dev',
+  'baljindersinghcse@gmail.com',
+];
+
+export const isAuthorizedAdmin = (email?: string | null): boolean => {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.trim().toLowerCase());
+};
+
 // Initial pre-registered admin accounts
 const INITIAL_ACCOUNTS: StoredAccount[] = [
   {
@@ -89,6 +101,18 @@ const INITIAL_ACCOUNTS: StoredAccount[] = [
     role: 'admin',
     isPro: true,
     provider: 'email',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'usr_admin_03',
+    name: 'Baljinder Singh',
+    email: 'baljindersinghcse@gmail.com',
+    title: 'Platform Founder & Lead Architect',
+    bio: 'System Design Prep Platform Founder & Administrator.',
+    passwordHash: 'Japan@2027',
+    role: 'admin',
+    isPro: true,
+    provider: 'google',
     createdAt: new Date().toISOString(),
   },
 ];
@@ -131,7 +155,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(() => {
     try {
       const stored = localStorage.getItem(CURRENT_USER_KEY);
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed: User = JSON.parse(stored);
+        if (isAuthorizedAdmin(parsed.email)) {
+          parsed.role = 'admin';
+          parsed.isPro = true;
+        }
+        return parsed;
+      }
     } catch (e) {
       console.error(e);
     }
@@ -166,24 +197,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const cleanEmail = (fbUser.email || `${fbUser.uid}@google.com`).toLowerCase();
         const proList = JSON.parse(localStorage.getItem(PRO_EMAILS_KEY) || '[]');
         const isProUser = proList.includes(cleanEmail);
+        const isAdminUser = isAuthorizedAdmin(cleanEmail);
 
         const db = getUsersDB();
         const existing = db.find((u) => u.email.toLowerCase() === cleanEmail);
 
         setUser((prev) => {
           // If already logged in as admin or same user, preserve role
-          if (prev && prev.email.toLowerCase() === cleanEmail) return prev;
+          if (prev && prev.email.toLowerCase() === cleanEmail) {
+            if (isAdminUser && prev.role !== 'admin') {
+              return { ...prev, role: 'admin', isPro: true };
+            }
+            return prev;
+          }
           return {
             id: fbUser.uid,
             name: existing?.name || fbUser.displayName || 'Engineer',
             email: cleanEmail,
-            title: existing?.title || 'Software Engineer',
+            title: isAdminUser ? 'Platform Founder & Lead Architect' : (existing?.title || 'Software Engineer'),
             bio: existing?.bio,
             avatar: existing?.avatar || fbUser.photoURL || undefined,
             linkedinUrl: existing?.linkedinUrl,
             githubUrl: existing?.githubUrl,
-            role: existing?.role || 'user',
-            isPro: Boolean(existing?.isPro || isProUser || existing?.role === 'admin'),
+            role: isAdminUser ? 'admin' : (existing?.role || 'user'),
+            isPro: Boolean(isAdminUser || existing?.isPro || isProUser),
             provider: fbUser.providerData[0]?.providerId.includes('google') ? 'google' : 'email',
             joinedAt: existing?.createdAt || new Date().toISOString(),
           };
@@ -366,6 +403,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const proList = JSON.parse(localStorage.getItem(PRO_EMAILS_KEY) || '[]');
       const isProUser = proList.includes(cleanEmail);
+      const isAdminUser = isAuthorizedAdmin(cleanEmail);
 
       const db = getUsersDB();
       const existing = db.find((u) => u.email.toLowerCase() === cleanEmail);
@@ -374,13 +412,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: fbUser.uid,
         name: existing?.name || cleanName,
         email: cleanEmail,
-        title: existing?.title || 'Google Verified Engineer',
+        title: isAdminUser ? 'Platform Founder & Lead Architect' : (existing?.title || 'Google Verified Engineer'),
         bio: existing?.bio,
         avatar: avatar || existing?.avatar,
         linkedinUrl: existing?.linkedinUrl,
         githubUrl: existing?.githubUrl,
-        role: existing?.role || 'user',
-        isPro: Boolean(existing?.isPro || isProUser || existing?.role === 'admin'),
+        role: isAdminUser ? 'admin' : (existing?.role || 'user'),
+        isPro: Boolean(isAdminUser || existing?.isPro || isProUser || existing?.role === 'admin'),
         provider: 'google',
         joinedAt: existing?.createdAt || new Date().toISOString(),
       };
@@ -390,15 +428,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: fbUser.uid,
           name: cleanName,
           email: cleanEmail,
-          title: 'Google Verified Engineer',
+          title: isAdminUser ? 'Platform Founder & Lead Architect' : 'Google Verified Engineer',
           passwordHash: 'google_oauth_managed',
-          role: 'user',
-          isPro: isProUser,
+          role: isAdminUser ? 'admin' : 'user',
+          isPro: Boolean(isAdminUser || isProUser),
           provider: 'google',
           createdAt: new Date().toISOString(),
           avatar: avatar,
         });
       } else {
+        if (isAdminUser) {
+          existing.role = 'admin';
+          existing.isPro = true;
+        }
         existing.avatar = avatar || existing.avatar;
       }
       saveUsersDB(db);

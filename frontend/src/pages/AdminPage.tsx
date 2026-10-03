@@ -150,7 +150,7 @@ export default function AdminPage() {
           </form>
 
           <div className="text-[11px] text-gray-500 pt-2 border-t border-gray-800">
-            Protected area for the site owner. Default passcode: <span className="font-mono text-purple-300">Japan@2027</span>
+            Protected area for authorized site owners only.
           </div>
         </div>
       </div>
