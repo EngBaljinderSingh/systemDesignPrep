@@ -44,8 +44,8 @@ const ORDERS_KEY = 'sdp_admin_orders';
 const LICENSES_KEY = 'sdp_admin_licenses';
 
 const DEFAULT_SETTINGS: PaymentSettings = {
-  upiId: 'systemdesignprep@okaxis',
-  upiPayeeName: 'System Design Prep',
+  upiId: 'baljindersinghcse@okhdfcbank',
+  upiPayeeName: 'Baljinder Singh',
   qrCodeImage: DEFAULT_QR_CODE,
   stripeCheckoutUrl: 'https://buy.stripe.com/test_systemdesignprep',
   paypalUrl: 'https://paypal.me/systemdesignprep',
@@ -97,6 +97,11 @@ export function getPaymentSettings(): PaymentSettings {
       return DEFAULT_SETTINGS;
     }
     const parsed = JSON.parse(raw);
+    if (!parsed.upiId || parsed.upiId === 'systemdesignprep@okaxis') {
+      parsed.upiId = 'baljindersinghcse@okhdfcbank';
+      parsed.upiPayeeName = 'Baljinder Singh';
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(parsed));
+    }
     return { ...DEFAULT_SETTINGS, ...parsed };
   } catch {
     return DEFAULT_SETTINGS;
