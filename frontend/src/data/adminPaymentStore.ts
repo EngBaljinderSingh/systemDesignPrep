@@ -45,7 +45,7 @@ const ORDERS_KEY = 'sdp_admin_orders';
 const LICENSES_KEY = 'sdp_admin_licenses';
 
 const DEFAULT_SETTINGS: PaymentSettings = {
-  adminPasscode: 'admin123',
+  adminPasscode: 'Japan@2027',
   upiId: 'systemdesignprep@okaxis',
   upiPayeeName: 'System Design Prep',
   qrCodeImage: DEFAULT_QR_CODE,
@@ -98,7 +98,13 @@ export function getPaymentSettings(): PaymentSettings {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(DEFAULT_SETTINGS));
       return DEFAULT_SETTINGS;
     }
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    // If it was previous default, migrate to new passcode
+    if (parsed.adminPasscode === 'admin123') {
+      parsed.adminPasscode = 'Japan@2027';
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(parsed));
+    }
+    return { ...DEFAULT_SETTINGS, ...parsed };
   } catch {
     return DEFAULT_SETTINGS;
   }

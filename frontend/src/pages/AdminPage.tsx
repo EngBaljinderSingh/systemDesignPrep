@@ -47,13 +47,17 @@ export default function AdminPage() {
   }, []);
 
   // Passcode verification
-  const handlePasscodeSubmit = (e: React.FormEvent) => {
+  const handlePasscodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passcode === settings.adminPasscode || passcode === 'admin123') {
-      login('admin@sdp.dev', 'admin');
-      setPasscodeError('');
+    if (passcode === settings.adminPasscode || passcode === 'Japan@2027') {
+      try {
+        await login('admin', 'Japan@2027');
+        setPasscodeError('');
+      } catch (err: any) {
+        setPasscodeError(err.message || 'Login failed.');
+      }
     } else {
-      setPasscodeError('Invalid Admin Passcode. (Default is admin123)');
+      setPasscodeError('Invalid Admin Passcode. Please enter your secret admin key.');
     }
   };
 
@@ -129,7 +133,7 @@ export default function AdminPage() {
                 type="password"
                 value={passcode}
                 onChange={(e) => setPasscode(e.target.value)}
-                placeholder="Enter admin passcode (default: admin123)"
+                placeholder="Enter your secret admin passcode"
                 required
                 className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-gray-700 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary text-center"
               />
@@ -146,7 +150,7 @@ export default function AdminPage() {
           </form>
 
           <div className="text-[11px] text-gray-500 pt-2 border-t border-gray-800">
-            Hint: Default development passcode is <span className="font-mono text-purple-300">admin123</span>
+            Protected area for the site owner. Default passcode: <span className="font-mono text-purple-300">Japan@2027</span>
           </div>
         </div>
       </div>
@@ -363,6 +367,22 @@ export default function AdminPage() {
                     onChange={(e) => setSettings({ ...settings, inrPrice: Number(e.target.value) })}
                     className="w-full px-3.5 py-2 text-xs rounded-xl bg-black/40 border border-gray-700 text-white font-mono focus:border-primary focus:outline-none"
                   />
+                </div>
+
+                {/* Master Admin Passcode */}
+                <div className="sm:col-span-2 bg-purple-950/20 border border-purple-500/30 p-3.5 rounded-xl space-y-1">
+                  <label className="text-xs text-purple-200 font-bold block">
+                    Master Admin Secret Passcode
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.adminPasscode}
+                    onChange={(e) => setSettings({ ...settings, adminPasscode: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-black/50 border border-purple-500/50 text-white font-mono focus:border-purple-400 focus:outline-none"
+                  />
+                  <span className="text-[10px] text-gray-400 block">
+                    Change this to your own private passcode. Only users who know this passcode can unlock this admin control center.
+                  </span>
                 </div>
               </div>
 
