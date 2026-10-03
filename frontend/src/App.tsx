@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useState } from 'react';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
-import CampaignPage from './pages/CampaignPage';
 import AlgorithmPatternsPage from './pages/AlgorithmPatternsPage';
 import SystemDesignPatternsPage from './pages/SystemDesignPatternsPage';
 import DesignPatternsPage from './pages/DesignPatternsPage';
@@ -47,7 +46,6 @@ function AppContent() {
               <Route path="/mock-interview" element={<MockInterviewPage />} />
               <Route path="/hackerrank" element={<HackerRankPage />} />
               <Route path="/resume" element={<ResumePage />} />
-              <Route path="/campaign" element={<CampaignPage />} />
             </Routes>
           </main>
         </div>

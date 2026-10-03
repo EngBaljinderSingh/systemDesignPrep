@@ -57,6 +57,19 @@ export default function OpenRouterChat() {
     const userMsg: Message = { role: 'user', content: trimmedInput };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
+    if (!OPENROUTER_API_KEY) {
+      setTimeout(() => {
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: '💡 AI Chat is ready! To connect live AI queries, set your free API key in frontend/.env as VITE_OPENROUTER_API_KEY. Meanwhile, explore our interactive HLD Case Studies and Capacity Calculators on the left menu!'
+          }
+        ]);
+        setIsLoading(false);
+      }, 500);
+      return;
+    }
     try {
       const res = await fetch(OPENROUTER_API_URL, {
         method: 'POST',

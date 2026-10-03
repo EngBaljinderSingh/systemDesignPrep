@@ -1,282 +1,641 @@
 import { useState } from 'react';
 import { hldCaseStudies, capacityRules, type HLDCaseStudy } from '../data/systemDesignCaseStudies';
+import CapacityBottleneckSimulator from '../components/CapacityBottleneckSimulator';
+import ProMonetizationModal from '../components/ProMonetizationModal';
+import {
+  Sparkles,
+  Layers,
+  Calculator,
+  Server,
+  HelpCircle,
+  GitBranch,
+  Download,
+  AlertCircle,
+  Maximize2
+} from 'lucide-react';
 
 // ── Capacity Rules Panel ──────────────────────────────────────────────────
-function CapacityRulesPanel() {
+function CapacityRulesPanel({ onOpenPro }: { onOpenPro: () => void }) {
   return (
-    <div className="space-y-4">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-white mb-1">Capacity Planning — Rules of Thumb</h2>
-        <p className="text-sm text-gray-400">
-          Universal formulas applied across all system design case studies below.
-        </p>
+    <div className="space-y-8 max-w-6xl mx-auto">
+      {/* Hero Banner */}
+      <div className="bg-gradient-to-r from-blue-900/40 via-purple-900/30 to-indigo-950/40 border border-primary/30 rounded-2xl p-6 sm:p-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/20 text-primary border border-primary/30 text-xs font-bold uppercase tracking-wider mb-2">
+              <Sparkles size={13} /> The Universal Formula Cheat Sheet
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              Capacity Planning & Bottleneck Heuristics
+            </h2>
+            <p className="text-sm text-gray-300 mt-1 max-w-2xl">
+              Master the mental math models used by Principal Engineers at Meta, Google, and Amazon to estimate QPS, storage, and cluster sizing under 3 minutes in an interview.
+            </p>
+          </div>
+          <button
+            onClick={onOpenPro}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-dark hover:to-indigo-700 text-white font-semibold text-xs shadow-lg shadow-primary/25 transition-all shrink-0"
+          >
+            <Download size={14} /> Download PDF Cheat Sheet
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Rules Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {capacityRules.map((rule, i) => (
           <div
             key={i}
-            className="bg-surface-light border border-gray-700 rounded-xl p-4 hover:border-primary/40 transition-colors"
+            className="bg-surface-light border border-gray-700/80 rounded-2xl p-5 hover:border-primary/50 transition-all flex flex-col justify-between"
           >
-            <div className="flex items-start gap-3 mb-2">
-              <span className="text-primary font-bold text-lg leading-none mt-0.5">{i + 1}</span>
-              <h3 className="font-semibold text-white text-sm">{rule.title}</h3>
+            <div>
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-primary/20 text-primary font-mono font-bold text-xs flex items-center justify-center">
+                    {i + 1}
+                  </span>
+                  <h3 className="font-bold text-white text-sm">{rule.title}</h3>
+                </div>
+                <span className="text-[10px] text-gray-500 font-mono">RULE 0{i + 1}</span>
+              </div>
+              <div className="mb-3 font-mono text-xs bg-black/40 border border-gray-700/80 rounded-xl px-3.5 py-2.5 text-green-300">
+                {rule.formula}
+              </div>
+              <p className="text-xs text-gray-400 leading-relaxed">{rule.description}</p>
             </div>
-            <div className="mb-3 ml-6 font-mono text-xs bg-black/30 border border-gray-700 rounded px-3 py-2 text-green-300">
-              {rule.formula}
+            <div className="mt-4 pt-3 border-t border-gray-800 text-[11px] text-primary/90 font-medium">
+              💡 {rule.keyRule}
             </div>
-            <p className="text-xs text-gray-400 ml-6 leading-relaxed">{rule.description}</p>
           </div>
         ))}
       </div>
 
-      {/* Bottleneck summary table */}
-      <div className="mt-6 border border-gray-700 rounded-xl overflow-hidden">
-        <div className="bg-white/5 px-4 py-2 border-b border-gray-700">
-          <h3 className="text-sm font-semibold text-white">Bottleneck Quick Reference</h3>
+      {/* Bottleneck Reference Table */}
+      <div className="border border-gray-700/80 rounded-2xl overflow-hidden bg-surface-light">
+        <div className="bg-white/5 px-5 py-3 border-b border-gray-700/80 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🚨</span>
+            <h3 className="text-sm font-bold text-white">System Bottleneck Quick Reference Matrix</h3>
+          </div>
+          <span className="text-xs text-gray-400 font-mono">4 Core Hardware Dimensions</span>
         </div>
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-gray-700 bg-black/20">
-              <th className="text-left px-4 py-2 text-gray-400 font-medium">Bottleneck Type</th>
-              <th className="text-left px-4 py-2 text-gray-400 font-medium">When It Happens</th>
-              <th className="text-left px-4 py-2 text-gray-400 font-medium">Fix</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[
-              { type: '🧠 Memory', when: 'Thread stacks, large key payloads', fix: 'Scale up RAM or reduce per-thread cost' },
-              { type: '⚡ CPU', when: 'High compute per request (locks, hashing)', fix: 'Scale up cores or optimize hot path' },
-              { type: '🌐 Network/OS', when: 'High concurrent TCP connections (>3M/server)', fix: 'Scale out — more server nodes' },
-            ].map((row, i) => (
-              <tr key={i} className="border-b border-gray-700/50 hover:bg-white/3">
-                <td className="px-4 py-3 text-white font-medium">{row.type}</td>
-                <td className="px-4 py-3 text-gray-400">{row.when}</td>
-                <td className="px-4 py-3 text-green-300">{row.fix}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-gray-800 bg-black/20 text-gray-400 uppercase tracking-wider font-semibold">
+                <th className="text-left px-5 py-3">Bottleneck Type</th>
+                <th className="text-left px-5 py-3">Trigger Condition</th>
+                <th className="text-left px-5 py-3">Architectural Symptom</th>
+                <th className="text-left px-5 py-3">Senior Engineering Fix</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-800/60">
+              {[
+                {
+                  type: '🧠 Memory (RAM)',
+                  condition: 'Large thread stacks (1-2MB/req) or large active cache keys (Redis)',
+                  symptom: 'Out Of Memory (OOM) killer crashes before CPU reaches 40%',
+                  fix: 'Migrate to Async Non-blocking I/O (Netty/Go) or scale RAM vertically',
+                  color: 'text-purple-300',
+                },
+                {
+                  type: '⚡ CPU Core Execution',
+                  condition: 'Cryptographic hashing, distributed lock contention, complex JSON deserialization',
+                  symptom: 'All cores peg at 100%, request queues surge, latency spikes to seconds',
+                  fix: 'Scale out CPU cores, offload locks to Redis Lua, cache serialized responses',
+                  color: 'text-red-300',
+                },
+                {
+                  type: '🌐 Network / OS Socket Cap',
+                  condition: 'High concurrent long-lived TCP/WebSocket connections (>2.5M/server)',
+                  symptom: 'Linux kernel packet drops, file descriptor exhaustion (`EMFILE`), socket memory bloat',
+                  fix: 'Scale out horizontally across 64GB nodes capped at ~2.5M to 3M connections each',
+                  color: 'text-blue-300',
+                },
+                {
+                  type: '💾 Storage IOPS & Disk I/O',
+                  condition: 'Uncached random reads, synchronous write commits on relational databases',
+                  symptom: 'High disk queue depth, thread blocking on `fsync`, database connection pool starvation',
+                  fix: '80-20 Redis caching layer, LSM-tree NoSQL (Cassandra), write batching via Kafka',
+                  color: 'text-yellow-300',
+                },
+              ].map((row, i) => (
+                <tr key={i} className="hover:bg-white/3 transition-colors">
+                  <td className={`px-5 py-3.5 font-bold ${row.color}`}>{row.type}</td>
+                  <td className="px-5 py-3.5 text-gray-300">{row.condition}</td>
+                  <td className="px-5 py-3.5 text-gray-400">{row.symptom}</td>
+                  <td className="px-5 py-3.5 text-green-300 font-medium">{row.fix}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
 }
 
 // ── Case Study Detail Panel ───────────────────────────────────────────────
-function CaseStudyDetail({ cs }: { cs: HLDCaseStudy }) {
+function CaseStudyDetail({ cs, onOpenPro }: { cs: HLDCaseStudy; onOpenPro: () => void }) {
+  const [activeTab, setActiveTab] = useState<'simulator' | 'math' | 'architecture' | 'sizing' | 'qa' | 'tradeoffs'>('simulator');
+  const [showImageModal, setShowImageModal] = useState(false);
+
   return (
-    <div className="space-y-6">
-
-      {/* Hero header */}
-      <div className="flex items-start gap-4">
-        <span className="text-4xl">{cs.icon}</span>
-        <div>
-          <h2 className="text-2xl font-bold text-white">{cs.title}</h2>
-          <p className="text-sm text-gray-400 mt-1">{cs.tagline}</p>
-        </div>
-      </div>
-
-      {/* Architecture Diagram */}
-      <div className="border border-gray-700 rounded-xl overflow-hidden">
-        <div className="bg-white/5 px-4 py-2 border-b border-gray-700 flex items-center gap-2">
-          <span className="text-sm font-semibold text-white">🏗️ Architecture Diagram</span>
-          <span className="text-xs text-gray-500">— from System Design PPT</span>
-        </div>
-        <img
-          src={cs.diagramImage}
-          alt={`${cs.title} HLD Architecture Diagram`}
-          className="w-full object-contain bg-black"
-        />
-      </div>
-
-      {/* Scale metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {cs.scaleMetrics.map((m, i) => (
-          <div key={i} className="bg-primary/10 border border-primary/20 rounded-xl p-3 text-center">
-            <div className="text-xs text-gray-400 mb-1">{m.label}</div>
-            <div className="text-sm font-bold text-primary">{m.value}</div>
+    <div className="space-y-6 max-w-6xl mx-auto">
+      {/* Case Study Header Card */}
+      <div className="bg-gradient-to-r from-surface-light via-surface to-surface-light border border-gray-700/80 rounded-2xl p-6 relative overflow-hidden">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-start gap-4">
+            <span className="text-4xl p-3 bg-white/5 rounded-2xl border border-gray-700/50 shrink-0">
+              {cs.icon}
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 font-semibold">
+                  {cs.category}
+                </span>
+                <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${
+                  cs.primaryBottleneck === 'Memory'
+                    ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                    : cs.primaryBottleneck === 'CPU'
+                      ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                      : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                }`}>
+                  🚨 Bottleneck: {cs.primaryBottleneck}
+                </span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                {cs.title}
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-400 mt-1 max-w-2xl leading-relaxed">
+                {cs.tagline}
+              </p>
+            </div>
           </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={onOpenPro}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-medium text-xs border border-gray-700 transition-colors"
+            >
+              <Download size={14} className="text-primary" /> Export Architecture PDF
+            </button>
+          </div>
+        </div>
+
+        {/* Scale Metrics Pill Ribbon */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-gray-800">
+          {cs.scaleMetrics.map((m, i) => (
+            <div key={i} className="bg-black/30 border border-gray-800 rounded-xl p-3">
+              <div className="text-[11px] text-gray-400 truncate">{m.label}</div>
+              <div className="text-sm sm:text-base font-bold text-white font-mono mt-0.5">{m.value}</div>
+              <div className="text-[10px] text-gray-500 truncate mt-0.5">{m.hint}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-1 border-b border-gray-700/80 overflow-x-auto pb-1 text-xs">
+        {[
+          { id: 'simulator', label: 'Interactive Simulator', icon: <Calculator size={14} />, badge: 'Live Math' },
+          { id: 'math', label: 'Calculation Blueprint', icon: <Layers size={14} /> },
+          { id: 'architecture', label: 'Architecture & Components', icon: <GitBranch size={14} /> },
+          { id: 'sizing', label: 'Instance Sizing Matrix', icon: <Server size={14} /> },
+          { id: 'qa', label: 'Staff Interview Q&A', icon: <HelpCircle size={14} /> },
+          { id: 'tradeoffs', label: 'System Trade-offs', icon: <GitBranch size={14} /> },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold whitespace-nowrap transition-all ${
+              activeTab === tab.id
+                ? 'bg-primary text-white shadow-md shadow-primary/20'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            {tab.icon}
+            <span>{tab.label}</span>
+            {tab.badge && (
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary'
+              }`}>
+                {tab.badge}
+              </span>
+            )}
+          </button>
         ))}
       </div>
 
-      {/* FRs + NFRs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-surface-light border border-gray-700 rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-            Functional Requirements
-          </h3>
-          <ul className="space-y-1.5">
-            {cs.functionalReqs.map((r, i) => (
-              <li key={i} className="text-sm text-gray-300 flex gap-2">
-                <span className="text-blue-400 mt-0.5 shrink-0">✓</span>{r}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="bg-surface-light border border-gray-700 rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-orange-400"></span>
-            Non-Functional Requirements
-          </h3>
-          <ul className="space-y-1.5">
-            {cs.nonFunctionalReqs.map((r, i) => (
-              <li key={i} className="text-sm text-gray-300 flex gap-2">
-                <span className="text-orange-400 mt-0.5 shrink-0">◈</span>{r}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+      {/* Tab 1: Interactive Capacity & Bottleneck Simulator */}
+      {activeTab === 'simulator' && (
+        <div className="space-y-6">
+          <CapacityBottleneckSimulator cs={cs} />
 
-      {/* HLD Components */}
-      <div>
-        <h3 className="text-sm font-semibold text-white mb-3">🏗️ HLD Key Components</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {cs.components.map((c, i) => (
-            <div key={i} className="bg-surface-light border border-gray-700 rounded-xl p-4 hover:border-yellow-500/40 transition-colors">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-yellow-400 text-base">⚙</span>
-                <span className="text-sm font-semibold text-white">{c.name}</span>
-              </div>
-              <p className="text-xs text-gray-400 leading-relaxed">{c.description}</p>
+          {/* Deep Dive Note */}
+          <div className="bg-surface-light border border-gray-700/80 rounded-2xl p-5 space-y-2">
+            <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+              <AlertCircle size={14} className="text-yellow-400" /> Deep Dive: Why Does This Bottleneck Happen?
+            </h4>
+            <p className="text-xs text-gray-300 leading-relaxed">
+              {cs.bottleneckWhy}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 2: Calculation Blueprint */}
+      {activeTab === 'math' && (
+        <div className="space-y-6">
+          <div className="bg-surface-light border border-gray-700/80 rounded-2xl p-6">
+            <div className="mb-4">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Calculator size={16} className="text-primary" /> Step-by-Step Storage & Bandwidth Math
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Exact mathematical derivation expected during high-level design interview rounds.
+              </p>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Storage Calculations */}
-      <div>
-        <h3 className="text-sm font-semibold text-white mb-3">💾 Storage Calculations</h3>
-        <div className="bg-black/40 border border-gray-700 rounded-xl overflow-hidden">
-          <div className="px-4 py-2 bg-white/5 border-b border-gray-700 flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-red-500"></span>
-            <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
-            <span className="w-3 h-3 rounded-full bg-green-500"></span>
-            <span className="ml-2 text-xs text-gray-500 font-mono">capacity_calc.js</span>
+            <div className="space-y-4">
+              {cs.storageCalcs.map((step, i) => (
+                <div key={i} className="bg-black/30 border border-gray-800 rounded-xl p-4 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-300 flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-primary/20 text-primary font-mono text-[11px] flex items-center justify-center">
+                        {i + 1}
+                      </span>
+                      {step.label}
+                    </span>
+                    <span className="text-xs font-mono font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20">
+                      {step.result}
+                    </span>
+                  </div>
+                  <div className="font-mono text-xs text-blue-300 pl-7 py-1">
+                    {step.formula}
+                  </div>
+                  <p className="text-[11px] text-gray-500 pl-7">
+                    {step.explanation}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="p-4 font-mono text-xs space-y-3">
-            {cs.storageCalcs.map((step, i) => (
-              <div key={i}>
-                <div className="text-gray-500">// {step.label}</div>
-                <div className="text-blue-300">{step.formula}</div>
-                <div className="text-green-300 font-semibold">→ {step.result}</div>
+
+          {/* Key Takeaway Card */}
+          <div className="bg-primary/10 border border-primary/30 rounded-2xl p-5 flex items-start gap-3">
+            <span className="text-2xl shrink-0">💡</span>
+            <div>
+              <h4 className="text-sm font-bold text-primary">Senior Engineer Interview Tip</h4>
+              <p className="text-xs text-gray-300 mt-1 leading-relaxed">{cs.takeaway}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 3: Architecture & Components */}
+      {activeTab === 'architecture' && (
+        <div className="space-y-6">
+          {/* Architecture Diagram with Expand */}
+          <div className="border border-gray-700/80 rounded-2xl overflow-hidden bg-surface-light">
+            <div className="bg-white/5 px-5 py-3 border-b border-gray-700/80 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-white">🏗️ High-Level Architecture Diagram</span>
+                <span className="text-xs text-gray-500">— Verified System Blueprint</span>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Instance Sizing */}
-      <div>
-        <h3 className="text-sm font-semibold text-white mb-3">🖥️ Instance Sizing Comparison</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {cs.instanceOptions.map((opt, i) => (
+              <button
+                onClick={() => setShowImageModal(true)}
+                className="flex items-center gap-1 text-xs text-primary hover:underline font-medium"
+              >
+                <Maximize2 size={13} /> Full Screen
+              </button>
+            </div>
             <div
-              key={i}
-              className={`border rounded-xl p-4 ${i === 1 ? 'border-green-500/40 bg-green-900/10' : 'border-gray-700 bg-surface-light'}`}
+              className="relative cursor-pointer group bg-black/60 p-2 flex items-center justify-center"
+              onClick={() => setShowImageModal(true)}
             >
-              <div className="flex items-center justify-between mb-3">
-                <span className="font-semibold text-white text-sm">{opt.spec}</span>
-                {i === 1 && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-300 border border-green-500/30">
-                    Recommended
-                  </span>
-                )}
-              </div>
-              <div className="space-y-2 text-xs font-mono">
-                <div>
-                  <span className="text-gray-500">Memory: </span>
-                  <span className="text-blue-300">{opt.memoryBound}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">CPU:    </span>
-                  <span className="text-purple-300">{opt.cpuBound}</span>
-                </div>
-                <div className="border-t border-gray-700 pt-2 mt-2">
-                  <span className="text-gray-500">Bottleneck: </span>
-                  <span className="text-red-300 font-bold">{opt.bottleneck}</span>
-                </div>
-              </div>
-              <div className="mt-3 flex items-center justify-between bg-black/30 rounded-lg px-3 py-2">
-                <span className="text-xs text-gray-400">Instances Required</span>
-                <span className={`text-lg font-bold ${i === 1 ? 'text-green-400' : 'text-yellow-400'}`}>
-                  {opt.instancesRequired}
-                </span>
+              <img
+                src={cs.diagramImage}
+                alt={`${cs.title} HLD Diagram`}
+                className="max-h-[460px] w-full object-contain rounded-lg transition-transform group-hover:scale-[1.01]"
+              />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-2">
+                <Maximize2 size={16} /> Click to enlarge diagram
               </div>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
 
-      {/* Takeaway */}
-      <div className="bg-primary/10 border border-primary/30 rounded-xl p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-primary text-lg">💡</span>
-          <h3 className="text-sm font-semibold text-primary">Key Takeaway</h3>
+          {/* FRs and NFRs */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-surface-light border border-gray-700/80 rounded-2xl p-5">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-400"></span> Functional Requirements (FR)
+              </h4>
+              <ul className="space-y-2">
+                {cs.functionalReqs.map((req, i) => (
+                  <li key={i} className="text-xs text-gray-300 flex items-start gap-2">
+                    <span className="text-blue-400 font-bold shrink-0 mt-0.5">✓</span>
+                    <span>{req}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="bg-surface-light border border-gray-700/80 rounded-2xl p-5">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-orange-400"></span> Non-Functional Requirements (NFR)
+              </h4>
+              <ul className="space-y-2">
+                {cs.nonFunctionalReqs.map((req, i) => (
+                  <li key={i} className="text-xs text-gray-300 flex items-start gap-2">
+                    <span className="text-orange-400 font-bold shrink-0 mt-0.5">◈</span>
+                    <span>{req}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Components Grid */}
+          <div>
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+              Core Subsystems & Responsibilities
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {cs.components.map((comp, i) => (
+                <div key={i} className="bg-surface-light border border-gray-700/80 rounded-2xl p-5 space-y-2 hover:border-gray-600 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold text-white text-sm flex items-center gap-2">
+                      <span className="text-primary text-base">⚙</span>
+                      {comp.name}
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-gray-400 border border-gray-800">
+                      {comp.technology}
+                    </span>
+                  </div>
+                  <div className="text-[11px] font-semibold text-primary">{comp.role}</div>
+                  <p className="text-xs text-gray-400 leading-relaxed">{comp.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <p className="text-sm text-gray-300 leading-relaxed">{cs.takeaway}</p>
-      </div>
+      )}
+
+      {/* Tab 4: Instance Sizing Matrix */}
+      {activeTab === 'sizing' && (
+        <div className="space-y-6">
+          <div className="bg-surface-light border border-gray-700/80 rounded-2xl p-6">
+            <h3 className="text-base font-bold text-white mb-2">Instance Sizing & Hardware Economics</h3>
+            <p className="text-xs text-gray-400 mb-6">
+              Comparing small multi-instance horizontal clusters vs high-density vertical compute nodes.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {cs.instanceOptions.map((opt, i) => (
+                <div
+                  key={i}
+                  className={`border rounded-2xl p-5 space-y-4 ${
+                    opt.isRecommended
+                      ? 'border-green-500/50 bg-green-950/15 ring-1 ring-green-500/30'
+                      : 'border-gray-700/80 bg-surface'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold text-white text-sm">{opt.spec}</h4>
+                      <span className="text-[11px] text-gray-400 font-mono">
+                        {opt.ramGB} GB RAM · {opt.cores} Cores
+                      </span>
+                    </div>
+                    {opt.isRecommended && (
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-green-500/20 text-green-300 border border-green-500/40 font-semibold">
+                        Recommended Architecture
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 text-xs font-mono bg-black/30 rounded-xl p-3.5 border border-gray-800">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Memory Bound:</span>
+                      <span className="text-purple-300 text-right">{opt.memoryBound}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">CPU Bound:</span>
+                      <span className="text-red-300 text-right">{opt.cpuBound}</span>
+                    </div>
+                    <div className="border-t border-gray-800 pt-2 flex justify-between">
+                      <span className="text-gray-400 font-sans font-bold">Binding Bottleneck:</span>
+                      <span className="text-orange-300 font-bold">{opt.bottleneck}</span>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    {opt.bottleneckExplanation}
+                  </p>
+
+                  <div className="flex items-center justify-between bg-black/40 rounded-xl px-4 py-3 border border-gray-800">
+                    <div>
+                      <span className="text-xs text-gray-400 block">Instances Required</span>
+                      <span className="text-[11px] text-gray-500">{opt.costEstimate}</span>
+                    </div>
+                    <span className={`text-2xl font-black font-mono ${
+                      opt.isRecommended ? 'text-green-400' : 'text-yellow-400'
+                    }`}>
+                      {opt.instancesRequired}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 5: Staff Interview Q&A */}
+      {activeTab === 'qa' && (
+        <div className="space-y-4">
+          <div className="bg-surface-light border border-gray-700/80 rounded-2xl p-6 mb-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <HelpCircle size={16} className="text-primary" /> Top Staff-Level Interview Follow-Ups
+            </h3>
+            <p className="text-xs text-gray-400 mt-1">
+              These are the exact high-friction questions Staff & Principal interviewers use to distinguish senior candidates.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {cs.interviewQAs.map((qa, i) => (
+              <div key={i} className="bg-surface-light border border-gray-700/80 rounded-2xl p-5 space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="px-2 py-0.5 rounded bg-primary/20 text-primary font-mono font-bold text-xs shrink-0 mt-0.5">
+                    Q{i + 1}
+                  </span>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">{qa.question}</h4>
+                    <span className="text-[11px] text-gray-500 block mt-0.5">
+                      🎯 Interviewer test: {qa.interviewerIntent}
+                    </span>
+                  </div>
+                </div>
+                <div className="bg-black/30 border border-gray-800 rounded-xl p-4 text-xs text-gray-300 leading-relaxed pl-4 border-l-2 border-l-green-500">
+                  <div className="text-green-400 font-bold text-[11px] uppercase tracking-wider mb-1">
+                    Model Senior Engineer Answer:
+                  </div>
+                  {qa.recommendedAnswer}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tab 6: Architectural Trade-offs */}
+      {activeTab === 'tradeoffs' && (
+        <div className="space-y-4">
+          <div className="bg-surface-light border border-gray-700/80 rounded-2xl p-6 mb-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <GitBranch size={16} className="text-primary" /> Architectural Decisions & Trade-Offs
+            </h3>
+            <p className="text-xs text-gray-400 mt-1">
+              Senior engineering is all about trade-offs: there are no right answers, only right justifications.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {cs.tradeoffs.map((t, i) => (
+              <div key={i} className="bg-surface-light border border-gray-700/80 rounded-2xl p-5 space-y-3">
+                <h4 className="font-bold text-white text-sm">{t.decision}</h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="p-2.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-300">
+                    <span className="text-[10px] text-green-400 font-bold block uppercase">Selected</span>
+                    {t.chosen}
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300">
+                    <span className="text-[10px] text-red-400 font-bold block uppercase">Rejected</span>
+                    {t.alternative}
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 leading-relaxed border-t border-gray-800 pt-2">
+                  <span className="text-gray-300 font-medium">Why:</span> {t.rationale}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox Modal for Diagram */}
+      {showImageModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div className="relative max-w-5xl w-full max-h-[90vh] flex flex-col items-center">
+            <img
+              src={cs.diagramImage}
+              alt={`${cs.title} HLD Architecture Diagram`}
+              className="max-h-[85vh] w-auto object-contain rounded-xl border border-gray-700 shadow-2xl"
+            />
+            <p className="text-xs text-gray-400 mt-3">Click anywhere or press ESC to close</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────
+// ── Main Page Component ───────────────────────────────────────────────────
 export default function HLDCaseStudiesPage() {
   const [selected, setSelected] = useState<string>('rules');
+  const [isProModalOpen, setIsProModalOpen] = useState(false);
 
   const sidebarItems = [
-    { id: 'rules', label: 'Capacity Rules', icon: '📐', subtitle: 'Universal formulas' },
+    { id: 'rules', label: 'Universal Formulas', icon: '📐', subtitle: 'Rules of Thumb & Math', category: 'General' },
     ...hldCaseStudies.map(cs => ({
       id: cs.id,
       label: cs.title,
       icon: cs.icon,
-      subtitle: 'HLD + Capacity Math',
+      subtitle: cs.category,
+      category: 'Case Studies',
     })),
   ];
 
   return (
     <div className="flex h-[calc(100vh-3rem)]">
-      {/* Sidebar */}
-      <aside className="w-56 flex-shrink-0 border-r border-gray-700 flex flex-col bg-surface">
-        <div className="p-3 border-b border-gray-700">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Case Studies</p>
-          <p className="text-xs text-gray-600 mt-0.5">from PPT + capacity math</p>
+      {/* Sidebar with categories */}
+      <aside className="w-64 flex-shrink-0 border-r border-gray-700/80 flex flex-col bg-surface select-none">
+        <div className="p-4 border-b border-gray-700/80">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">HLD Architectures</p>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold font-mono">
+              5 Studies
+            </span>
+          </div>
+          <p className="text-[11px] text-gray-500 mt-0.5">Real scale & bottleneck math</p>
         </div>
-        <ul className="overflow-y-auto flex-1 py-1">
+
+        <ul className="overflow-y-auto flex-1 py-2 space-y-1 px-2">
           {sidebarItems.map((item) => (
             <li key={item.id}>
               <button
                 onClick={() => setSelected(item.id)}
-                className={`w-full text-left px-3 py-3 border-b border-gray-800 transition-all ${
+                className={`w-full text-left px-3 py-2.5 rounded-xl transition-all ${
                   selected === item.id
-                    ? 'bg-primary/10 border-l-2 border-l-primary'
-                    : 'hover:bg-white/5'
+                    ? 'bg-primary/15 text-white border border-primary/30 shadow-sm'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-base">{item.icon}</span>
-                  <div>
-                    <div className={`text-sm font-medium ${selected === item.id ? 'text-white' : 'text-gray-400'}`}>
+                <div className="flex items-center gap-3">
+                  <span className="text-lg shrink-0">{item.icon}</span>
+                  <div className="truncate">
+                    <div className={`text-xs font-bold truncate ${selected === item.id ? 'text-white' : 'text-gray-300'}`}>
                       {item.label}
                     </div>
-                    <div className="text-xs text-gray-600">{item.subtitle}</div>
+                    <div className="text-[10px] text-gray-500 truncate">{item.subtitle}</div>
                   </div>
                 </div>
               </button>
             </li>
           ))}
         </ul>
+
+        {/* Pro Upsell Callout in Sidebar */}
+        <div className="p-3 border-t border-gray-800 bg-surface-light/40">
+          <div className="bg-gradient-to-br from-primary/20 to-purple-900/20 border border-primary/30 rounded-xl p-3 text-center">
+            <div className="flex items-center justify-center gap-1 text-xs font-bold text-white mb-1">
+              <Sparkles size={13} className="text-yellow-400" /> Go Pro
+            </div>
+            <p className="text-[11px] text-gray-400 mb-2.5">
+              Download PDF architecture blueprints & formula sheet.
+            </p>
+            <button
+              onClick={() => setIsProModalOpen(true)}
+              className="w-full py-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white text-xs font-bold transition-all shadow-md shadow-primary/20"
+            >
+              Get Pro Pass ($29)
+            </button>
+          </div>
+        </div>
       </aside>
 
-      {/* Main content */}
-      <main className="flex-1 overflow-y-auto p-6">
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto p-6 lg:p-8">
         {selected === 'rules' ? (
-          <CapacityRulesPanel />
+          <CapacityRulesPanel onOpenPro={() => setIsProModalOpen(true)} />
         ) : (
-          <CaseStudyDetail cs={hldCaseStudies.find(cs => cs.id === selected)!} />
+          <CaseStudyDetail
+            cs={hldCaseStudies.find(cs => cs.id === selected)!}
+            onOpenPro={() => setIsProModalOpen(true)}
+          />
         )}
       </main>
+
+      {/* Pro Monetization Modal */}
+      <ProMonetizationModal
+        isOpen={isProModalOpen}
+        onClose={() => setIsProModalOpen(false)}
+      />
     </div>
   );
 }
