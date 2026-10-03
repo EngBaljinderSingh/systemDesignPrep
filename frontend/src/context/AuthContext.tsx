@@ -51,7 +51,7 @@ interface AuthContextType {
   loginWithSocial: (provider: 'google' | 'linkedin', email?: string, name?: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
-  upgradeToPro: () => void;
+  upgradeToPro: (targetEmail?: string) => void;
   updateUserProfile: (details: Partial<User>) => Promise<void>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
   isAuthModalOpen: boolean;
@@ -447,25 +447,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem(CURRENT_USER_KEY);
   };
 
-  const upgradeToPro = () => {
-    if (!user) return;
-    const updated = { ...user, isPro: true };
-    setUser(updated);
+  const upgradeToPro = (targetEmail?: string) => {
+    const emailToUpgrade = (targetEmail || user?.email || 'pro.engineer@gmail.com').trim().toLowerCase();
 
     try {
       const proList = JSON.parse(localStorage.getItem(PRO_EMAILS_KEY) || '[]');
-      if (!proList.includes(user.email.toLowerCase())) {
-        proList.push(user.email.toLowerCase());
+      if (!proList.includes(emailToUpgrade)) {
+        proList.push(emailToUpgrade);
         localStorage.setItem(PRO_EMAILS_KEY, JSON.stringify(proList));
       }
       const db = getUsersDB();
-      const match = db.find((u) => u.email.toLowerCase() === user.email.toLowerCase());
+      const match = db.find((u) => u.email.toLowerCase() === emailToUpgrade);
       if (match) {
         match.isPro = true;
         saveUsersDB(db);
       }
     } catch (e) {
       console.error(e);
+    }
+
+    if (user) {
+      const updated = { ...user, isPro: true };
+      setUser(updated);
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updated));
+    } else {
+      // Create guest Pro session for this purchaser
+      const sessionUser: User = {
+        id: `usr_${Date.now()}`,
+        name: emailToUpgrade.split('@')[0],
+        email: emailToUpgrade,
+        title: 'Pro Software Engineer',
+        role: 'user',
+        isPro: true,
+        provider: 'email',
+        joinedAt: new Date().toISOString(),
+      };
+      setUser(sessionUser);
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(sessionUser));
     }
   };
 

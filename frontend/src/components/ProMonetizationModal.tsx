@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   X,
   Check,
@@ -9,7 +10,8 @@ import {
   ExternalLink,
   Key,
   QrCode,
-  CreditCard
+  CreditCard,
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -36,6 +38,7 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
   const [transactionRef, setTransactionRef] = useState('');
   const [licenseInput, setLicenseInput] = useState('');
   const [keyError, setKeyError] = useState('');
+  const [validationError, setValidationError] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [copiedUpi, setCopiedUpi] = useState(false);
 
@@ -48,6 +51,7 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
       }
       setSubmitted(false);
       setKeyError('');
+      setValidationError('');
     }
   }, [isOpen, user]);
 
@@ -65,12 +69,23 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
 
   const handleQrOrderSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!buyerEmail.trim() || !transactionRef.trim()) return;
+    setValidationError('');
+
+    const email = (buyerEmail || user?.email || '').trim();
+    if (!email) {
+      setValidationError('Please enter your email address so we can activate Pro on your account.');
+      return;
+    }
+
+    if (!transactionRef.trim()) {
+      setValidationError('Please enter the 12-digit UPI reference (UTR) or Transaction ID from your payment app.');
+      return;
+    }
 
     // Save order in admin queue
     saveOrder({
-      userEmail: buyerEmail.trim(),
-      userName: buyerName.trim() || buyerEmail.split('@')[0],
+      userEmail: email,
+      userName: (buyerName || user?.name || email.split('@')[0]).trim(),
       plan: selectedPlan,
       amount: currentPrice,
       paymentMethod: 'qr_upi',
@@ -78,7 +93,7 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
     });
 
     // Also automatically upgrade in session so buyer gets instant gratification
-    upgradeToPro();
+    upgradeToPro(email);
     setSubmitted(true);
   };
 
@@ -306,30 +321,47 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
                       </div>
                     </div>
 
+                    {validationError && (
+                      <div className="p-2.5 rounded-xl bg-red-950/40 border border-red-500/40 text-red-300 text-xs flex items-center gap-2">
+                        <AlertCircle size={14} className="shrink-0" />
+                        <span>{validationError}</span>
+                      </div>
+                    )}
+
                     <button
                       type="submit"
-                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold text-xs shadow-lg shadow-green-600/25 transition-all flex items-center justify-center gap-2"
+                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold text-xs shadow-lg shadow-green-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <Check size={15} />
                       <span>I've Paid — Confirm & Activate Pro</span>
                     </button>
                   </form>
                 ) : (
-                  <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center space-y-2 animate-fade-in">
-                    <div className="w-10 h-10 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center mx-auto">
-                      <Check size={20} />
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-5 text-center space-y-3 animate-fade-in">
+                    <div className="w-12 h-12 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center mx-auto text-xl">
+                      <Check size={24} />
                     </div>
-                    <h4 className="text-white font-bold text-sm">Payment Verification Submitted & Pro Activated!</h4>
-                    <p className="text-xs text-gray-300 max-w-md mx-auto">
-                      Thank you! Your reference <span className="font-mono text-green-300 font-bold">{transactionRef}</span> was received. Your Pro privileges are active on this account!
+                    <h4 className="text-white font-bold text-base">Payment Submitted & Pro Activated!</h4>
+                    <p className="text-xs text-gray-300 max-w-md mx-auto leading-relaxed">
+                      Thank you! Reference <span className="font-mono text-green-300 font-bold">{transactionRef}</span> was recorded. Pro privileges have been unlocked on this account!
                     </p>
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      className="mt-2 px-5 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white text-xs font-semibold"
-                    >
-                      Done & Close
-                    </button>
+                    <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
+                      <Link
+                        to="/hld-case-studies"
+                        onClick={onClose}
+                        className="px-5 py-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-dark hover:to-indigo-700 text-white text-xs font-bold shadow-md shadow-primary/25 transition-all flex items-center gap-1.5"
+                      >
+                        <Sparkles size={14} className="text-yellow-300" />
+                        <span>Open Pro Blueprints & Staff Math</span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors"
+                      >
+                        Close
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
