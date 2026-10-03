@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, ArrowRight, CheckCircle2, Palette, Award } from 'lucide-react';
+import { Sparkles, ArrowRight, CheckCircle2, Palette, Award, Coffee } from 'lucide-react';
 import ProMonetizationModal from '../components/ProMonetizationModal';
-import { useAuth } from '../context/AuthContext';
 
 export default function HomePage() {
-  const { isPro } = useAuth();
   const [isProOpen, setIsProOpen] = useState(false);
   const [demoDau, setDemoDau] = useState<number>(100); // 100 Million
   const [demoWorkload, setDemoWorkload] = useState<'whatsapp' | 'ratelimit' | 'booking'>('whatsapp');
@@ -418,43 +416,41 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Monetization / Pro Supporter Section ── */}
+      {/* ── Community & Support Section ── */}
       <section className="max-w-4xl mx-auto px-6">
         <div className="bg-gradient-to-r from-indigo-900/40 via-purple-900/30 to-pink-900/40 border border-primary/40 rounded-2xl p-8 text-center space-y-5">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/30 text-xs font-bold uppercase tracking-wider">
-            <Sparkles size={13} /> Support Independent Tech Education
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold uppercase tracking-wider">
+            <Sparkles size={13} /> 100% Free & Open Tech Education
           </div>
 
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Accelerate Your L5 / L6 Engineering Promotion
+            Master Large-Scale Distributed Systems
           </h2>
 
           <p className="text-xs sm:text-sm text-gray-300 max-w-xl mx-auto leading-relaxed">
-            Get instant downloadable high-resolution architecture blueprints (PDF), the Staff Engineer Capacity Formula Sheet, and priority feedback on your resume.
+            All 5 comprehensive HLD blueprints, Staff engineer interview follow-ups, capacity estimation calculators, and interactive architecture visualizers are completely free for everyone.
           </p>
 
-          <div className="pt-2">
-            {isPro ? (
-              <Link
-                to="/hld-case-studies"
-                className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-green-600 via-emerald-600 to-green-700 hover:from-green-500 hover:to-emerald-500 text-white font-extrabold text-sm shadow-xl shadow-green-600/30 transition-all hover:scale-[1.02] inline-flex items-center gap-2"
-              >
-                <Sparkles size={16} className="text-yellow-300" />
-                <span>Open Pro Vault & Staff Blueprints</span>
-              </Link>
-            ) : (
-              <button
-                onClick={() => setIsProOpen(true)}
-                className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-primary to-indigo-500 hover:from-primary-dark hover:to-indigo-600 text-white font-extrabold text-sm shadow-xl shadow-primary/30 transition-all hover:scale-[1.02] inline-flex items-center gap-2"
-              >
-                <Sparkles size={16} />
-                <span>Get Pro Lifetime Pass ($29 / ₹999)</span>
-              </button>
-            )}
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              to="/hld-case-studies"
+              className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-dark hover:to-indigo-500 text-white font-extrabold text-sm shadow-xl shadow-primary/30 transition-all hover:scale-[1.02] inline-flex items-center gap-2"
+            >
+              <span>Explore HLD Playbook</span>
+              <ArrowRight size={16} />
+            </Link>
+
+            <button
+              onClick={() => setIsProOpen(true)}
+              className="px-6 py-3.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold text-sm transition-all hover:scale-[1.02] inline-flex items-center gap-2 cursor-pointer shadow-md"
+            >
+              <Coffee size={16} />
+              <span>Buy Me a Coffee</span>
+            </button>
           </div>
 
           <p className="text-[11px] text-gray-400">
-            Also available as a $5 coffee tip to support cloud hosting. One-time payment · Lifetime access.
+            Created with ❤️ to help software engineers crack Senior & Staff system design interviews.
           </p>
         </div>
       </section>

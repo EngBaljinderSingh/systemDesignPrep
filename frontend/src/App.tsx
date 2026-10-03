@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import { ThemeProvider, useTheme } from './ThemeContext';
 import { AuthProvider } from './context/AuthContext';
@@ -13,7 +13,6 @@ const DesignPatternsPage = lazy(() => import('./pages/DesignPatternsPage'));
 const LearningHubPage = lazy(() => import('./pages/LearningHubPage'));
 const ProblemsPage = lazy(() => import('./pages/ProblemsPage'));
 const InterviewQuestionsPage = lazy(() => import('./pages/InterviewQuestionsPage'));
-const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const CanvasPage = lazy(() => import('./pages/CanvasPage'));
 const CodeEditorPage = lazy(() => import('./pages/CodeEditorPage'));
 const ResumePage = lazy(() => import('./pages/ResumePage'));
@@ -102,7 +101,7 @@ function MainRoutes() {
         <Route path="/hackerrank" element={<HackerRankPage />} />
         <Route path="/mock-interview" element={<MockInterviewPage />} />
         <Route path="/resume" element={<ResumePage />} />
-        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/profile" element={<Navigate to="/" replace />} />
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </Suspense>

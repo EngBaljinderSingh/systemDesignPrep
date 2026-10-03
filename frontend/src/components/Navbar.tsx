@@ -19,10 +19,9 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
-    sectionTitle: 'Core',
+    sectionTitle: 'Start',
     items: [
       { to: '/', label: 'Home', icon: '🏠', end: true },
-      { to: '/profile', label: 'My Profile', icon: '👤' },
     ],
   },
   {
@@ -57,7 +56,6 @@ const navGroups: NavGroup[] = [
 // Prefetch triggers on tab hover so chunks load into memory before the click finishes
 const pagePreloaders: Record<string, () => Promise<unknown>> = {
   '/': () => import('../pages/HomePage'),
-  '/profile': () => import('../pages/ProfilePage'),
   '/hld-case-studies': () => import('../pages/HLDCaseStudiesPage'),
   '/system-design': () => import('../pages/SystemDesignPatternsPage'),
   '/canvas': () => import('../pages/CanvasPage'),
