@@ -1,15 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Sparkles,
-  ArrowRight,
-  CheckCircle2,
-  Palette,
-  Award
-} from 'lucide-react';
+import { Sparkles, ArrowRight, CheckCircle2, Palette, Award } from 'lucide-react';
 import ProMonetizationModal from '../components/ProMonetizationModal';
+import { useAuth } from '../context/AuthContext';
 
 export default function HomePage() {
+  const { isPro } = useAuth();
   const [isProOpen, setIsProOpen] = useState(false);
   const [demoDau, setDemoDau] = useState<number>(100); // 100 Million
   const [demoWorkload, setDemoWorkload] = useState<'whatsapp' | 'ratelimit' | 'booking'>('whatsapp');
@@ -438,13 +434,23 @@ export default function HomePage() {
           </p>
 
           <div className="pt-2">
-            <button
-              onClick={() => setIsProOpen(true)}
-              className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-primary to-indigo-500 hover:from-primary-dark hover:to-indigo-600 text-white font-extrabold text-sm shadow-xl shadow-primary/30 transition-all hover:scale-[1.02] inline-flex items-center gap-2"
-            >
-              <Sparkles size={16} />
-              <span>Get Pro Lifetime Pass ($29)</span>
-            </button>
+            {isPro ? (
+              <Link
+                to="/hld-case-studies"
+                className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-green-600 via-emerald-600 to-green-700 hover:from-green-500 hover:to-emerald-500 text-white font-extrabold text-sm shadow-xl shadow-green-600/30 transition-all hover:scale-[1.02] inline-flex items-center gap-2"
+              >
+                <Sparkles size={16} className="text-yellow-300" />
+                <span>Open Pro Vault & Staff Blueprints</span>
+              </Link>
+            ) : (
+              <button
+                onClick={() => setIsProOpen(true)}
+                className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-primary to-indigo-500 hover:from-primary-dark hover:to-indigo-600 text-white font-extrabold text-sm shadow-xl shadow-primary/30 transition-all hover:scale-[1.02] inline-flex items-center gap-2"
+              >
+                <Sparkles size={16} />
+                <span>Get Pro Lifetime Pass ($29 / ₹999)</span>
+              </button>
+            )}
           </div>
 
           <p className="text-[11px] text-gray-400">

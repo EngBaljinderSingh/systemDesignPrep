@@ -76,24 +76,32 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
   const handleQrOrderSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setValidationError('');
+
+    const email = (buyerEmail || user?.email || '').trim();
+    if (!email || !email.includes('@')) {
+      setValidationError('Please enter a valid email address so we can activate Pro on your account once verified.');
+      return;
+    }
+
+    if (!transactionRef.trim() || transactionRef.trim().length < 6) {
+      setValidationError('Please enter the 12-digit UPI Reference (UTR) or Transaction ID from your payment app.');
+      return;
+    }
+
     setIsActivating(true);
 
-    const email = (buyerEmail || user?.email || `candidate-${Date.now().toString(36)}@sdp.dev`).trim();
-    const finalRef = (transactionRef.trim() || `UPI-TXN-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`);
-
     setTimeout(() => {
-      // Save order in admin queue
+      // Save order in admin queue with status: 'pending'
       saveOrder({
         userEmail: email,
         userName: (buyerName || user?.name || email.split('@')[0]).trim(),
         plan: selectedPlan,
         amount: currentPrice,
         paymentMethod: 'qr_upi',
-        transactionRef: finalRef,
+        transactionRef: transactionRef.trim(),
       });
 
-      // Automatically upgrade session and persist Pro access
-      upgradeToPro(email);
+      // Do NOT auto-grant Pro! The owner will verify the transfer in the Admin portal.
       setSubmitted(true);
       setIsActivating(false);
     }, 600);
@@ -150,31 +158,39 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-6">
-          {/* Active Pro Member Banner */}
-          {isPro && !submitted && (
-            <div className="p-4 rounded-xl bg-green-500/15 border border-green-500/30 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center shrink-0">
-                  <Check size={18} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-white">Your Pro Membership is Active!</h4>
-                  <p className="text-xs text-green-300/90">
-                    All Staff Q&A answers and downloadable blueprints are fully unlocked.
-                  </p>
-                </div>
+          {/* If user is ALREADY Pro: show active member card and NO payment checkout */}
+          {isPro ? (
+            <div className="py-6 text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center mx-auto text-3xl">
+                <Check size={32} />
               </div>
-              <Link
-                to="/hld-case-studies"
-                onClick={onClose}
-                className="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-xs font-bold shrink-0 transition-colors"
-              >
-                Go to Studies
-              </Link>
+              <h3 className="text-xl font-extrabold text-white">
+                Your Pro Lifetime Membership is Active!
+              </h3>
+              <p className="text-xs text-gray-300 max-w-md mx-auto leading-relaxed">
+                You have unrestricted access to all 5 complete FAANG architecture blueprints, Staff & Principal model interview answers, and capacity calculators. No payment needed.
+              </p>
+              <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Link
+                  to="/hld-case-studies"
+                  onClick={onClose}
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-dark hover:to-indigo-700 text-white text-xs font-bold shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2"
+                >
+                  <Sparkles size={15} className="text-yellow-300" />
+                  <span>Open HLD Case Studies & Blueprints</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
-          )}
-
-          {/* Plan Selector */}
+          ) : (
+            <>
+              {/* Plan Selector */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Lifetime Pass */}
             <div
@@ -400,29 +416,28 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
                     </button>
                   </div>
                 ) : (
-                  <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-6 text-center space-y-3 animate-fade-in">
-                    <div className="w-14 h-14 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center mx-auto text-2xl">
-                      <Check size={28} />
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-6 text-center space-y-3 animate-fade-in">
+                    <div className="w-14 h-14 rounded-full bg-yellow-500/20 text-yellow-400 flex items-center justify-center mx-auto text-2xl">
+                      ⏳
                     </div>
-                    <h4 className="text-white font-extrabold text-lg">Payment Confirmed & Pro Activated! 🎉</h4>
+                    <h4 className="text-white font-extrabold text-lg">Payment Reference Submitted!</h4>
                     <p className="text-xs text-gray-300 max-w-md mx-auto leading-relaxed">
-                      Thank you! Your Pro privileges have been successfully unlocked on your account. All Staff-level Q&A and architecture blueprints are now accessible.
+                      Thank you! Reference <span className="font-mono text-yellow-300 font-bold">{transactionRef}</span> has been recorded for <span className="text-white font-semibold">{buyerEmail || user?.email}</span>.
                     </p>
-                    <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
-                      <Link
-                        to="/hld-case-studies"
-                        onClick={onClose}
-                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-dark hover:to-indigo-700 text-white text-xs font-bold shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2"
-                      >
-                        <Sparkles size={15} className="text-yellow-300" />
-                        <span>Open Pro Blueprints & Staff Math</span>
-                      </Link>
+                    <div className="bg-black/40 border border-gray-800 rounded-xl p-3.5 text-left text-xs text-gray-400 space-y-1.5">
+                      <div className="text-white font-semibold flex items-center gap-1.5">
+                        <ShieldCheck size={14} className="text-green-400" /> Verification in Progress:
+                      </div>
+                      <p className="text-gray-300">1. Baljinder Singh will verify the ₹999 receipt in his bank/UPI records.</p>
+                      <p className="text-gray-300">2. Upon 1-click approval in the Admin Portal, your email is immediately unlocked with Lifetime Pro access!</p>
+                    </div>
+                    <div className="pt-2 flex justify-center">
                       <button
                         type="button"
                         onClick={onClose}
-                        className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors"
+                        className="px-6 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors"
                       >
-                        Close
+                        Understood & Close
                       </button>
                     </div>
                   </div>
@@ -494,6 +509,8 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
               </button>
             )}
           </div>
+            </>
+          )}
         </div>
       </div>
 
