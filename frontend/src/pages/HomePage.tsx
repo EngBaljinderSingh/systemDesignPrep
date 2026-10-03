@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, ArrowRight, CheckCircle2, Palette, Award, Coffee } from 'lucide-react';
+import { Sparkles, ArrowRight, CheckCircle2, Palette, Coffee } from 'lucide-react';
 import ProMonetizationModal from '../components/ProMonetizationModal';
 
 export default function HomePage() {
@@ -102,10 +102,10 @@ export default function HomePage() {
 
           <button
             onClick={() => setIsProOpen(true)}
-            className="px-5 py-3 rounded-xl bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-300 font-semibold text-sm border border-yellow-500/30 transition-all flex items-center gap-1.5"
+            className="px-5 py-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-sm border border-amber-500/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
           >
-            <Award size={16} />
-            <span>Go Pro ($29)</span>
+            <Coffee size={16} />
+            <span>Buy Me a Coffee</span>
           </button>
         </div>
 

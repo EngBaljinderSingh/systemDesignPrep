@@ -34,6 +34,7 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
   const [supporterNote, setSupporterNote] = useState('');
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [submittedNote, setSubmittedNote] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [showEnlargedQr, setShowEnlargedQr] = useState(false);
 
   useEffect(() => {
@@ -44,6 +45,7 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
         setSupporterEmail(user.email);
       }
       setSubmittedNote(false);
+      setIsSendingEmail(false);
       setCopiedUpi(false);
     }
   }, [isOpen, user]);
@@ -59,11 +61,13 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
     setTimeout(() => setCopiedUpi(false), 2000);
   };
 
-  const handleNoteSubmit = (e: React.FormEvent) => {
+  const handleNoteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSendingEmail(true);
     const email = supporterEmail || user?.email || 'supporter@sdp.dev';
     const name = supporterName || user?.name || 'Fellow Engineer';
 
+    // 1. Record in local store
     saveOrder({
       userEmail: email,
       userName: name,
@@ -73,7 +77,30 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
       transactionRef: supporterNote ? `NOTE: ${supporterNote.slice(0, 50)}` : 'COFFEE-TIP-SENT',
     });
 
-    setSubmittedNote(true);
+    // 2. Dispatch real-time email notification directly to Baljinder's inbox
+    try {
+      await fetch('https://formsubmit.co/ajax/baljindersinghcse@gmail.com', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          _subject: `☕ New Coffee Tip (${currentPrice}) from ${name}`,
+          SupporterName: name,
+          SupporterEmail: email,
+          TipAmount: currentPrice,
+          SupportTier: selectedTier.label,
+          PersonalNote: supporterNote || 'Sent coffee tip via Google Pay / UPI',
+          SubmittedAt: new Date().toLocaleString('en-US', { timeZoneName: 'short' }),
+        }),
+      });
+    } catch (err) {
+      console.warn('FormSubmit notification error:', err);
+    } finally {
+      setIsSendingEmail(false);
+      setSubmittedNote(true);
+    }
   };
 
   return (
@@ -249,10 +276,20 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
 
                 <button
                   type="submit"
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-gray-950 font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  disabled={isSendingEmail}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 disabled:opacity-75 text-gray-950 font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <MessageSquareHeart size={14} />
-                  <span>I've Sent a Coffee — Leave a Thank You Note ❤️</span>
+                  {isSendingEmail ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
+                      <span>Notifying Baljinder...</span>
+                    </span>
+                  ) : (
+                    <>
+                      <MessageSquareHeart size={14} />
+                      <span>I've Sent a Coffee — Notify Baljinder ❤️</span>
+                    </>
+                  )}
                 </button>
               </form>
             ) : (
@@ -262,15 +299,23 @@ export default function ProMonetizationModal({ isOpen, onClose }: ProMonetizatio
                 </div>
                 <h4 className="text-white font-bold text-sm">Thank You for Supporting!</h4>
                 <p className="text-xs text-gray-300 max-w-sm mx-auto leading-relaxed">
-                  Your generosity means the world and directly keeps System Design Prep 100% free and open to engineers across the globe.
+                  Your notification has been dispatched directly to Baljinder's email (baljindersinghcse@gmail.com). Your support keeps System Design Prep 100% free and open for everyone!
                 </p>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold"
-                >
-                  Close
-                </button>
+                <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+                  <a
+                    href={`mailto:baljindersinghcse@gmail.com?subject=${encodeURIComponent(`Coffee Tip from ${supporterName || 'A Supporter'}`)}&body=${encodeURIComponent(`Hi Baljinder,\n\nI just sent a ${currentPrice} coffee tip to support System Design Prep!\n\nNote: ${supporterNote || 'Great platform!'}\n\nBest,\n${supporterName || 'Fellow Engineer'}`)}`}
+                    className="text-xs text-yellow-300 hover:text-yellow-200 underline font-medium"
+                  >
+                    Open direct email
+                  </a>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
               </div>
             )}
           </div>

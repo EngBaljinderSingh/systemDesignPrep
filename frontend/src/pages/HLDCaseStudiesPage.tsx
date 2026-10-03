@@ -33,13 +33,6 @@ function CapacityRulesPanel() {
               Master the mental math models used by Principal Engineers at Meta, Google, and Amazon to estimate QPS, storage, and cluster sizing under 3 minutes in an interview.
             </p>
           </div>
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-dark hover:to-indigo-700 text-white font-semibold text-xs shadow-lg shadow-primary/25 transition-all shrink-0 cursor-pointer"
-          >
-            <Download size={14} className="text-green-300" />
-            <span>Print / Save Formula Sheet (Free)</span>
-          </button>
         </div>
       </div>
 
