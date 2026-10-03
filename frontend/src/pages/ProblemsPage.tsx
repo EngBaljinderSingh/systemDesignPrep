@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { problems, type Problem } from '../data/problems';
 import { algorithmPatterns } from '../data/algorithmPatterns';
-import CodeEditorPage from './CodeEditorPage';
+
+const CodeEditorPage = lazy(() => import('./CodeEditorPage'));
 
 const DIFFICULTY_COLORS = {
   Easy: 'text-green-400',
@@ -58,16 +59,18 @@ export default function ProblemsPage() {
             </span>
           </div>
           <div className="flex-1 overflow-hidden">
-            <CodeEditorPage
-              problemTitle={solvingProblem.title}
-              problemDescription={`${solvingProblem.description}${
-                solvingProblem.examples.length
-                  ? '\n\n' + solvingProblem.examples
-                      .map((ex, i) => `Example ${i + 1}:\n  Input: ${ex.input}\n  Output: ${ex.output}${ex.explanation ? '\n  Explanation: ' + ex.explanation : ''}`)
-                      .join('\n\n')
-                  : ''
-              }`}
-            />
+            <Suspense fallback={<div className="h-full flex items-center justify-center text-xs text-gray-400">Loading code editor...</div>}>
+              <CodeEditorPage
+                problemTitle={solvingProblem.title}
+                problemDescription={`${solvingProblem.description}${
+                  solvingProblem.examples.length
+                    ? '\n\n' + solvingProblem.examples
+                        .map((ex, i) => `Example ${i + 1}:\n  Input: ${ex.input}\n  Output: ${ex.output}${ex.explanation ? '\n  Explanation: ' + ex.explanation : ''}`)
+                        .join('\n\n')
+                    : ''
+                }`}
+              />
+            </Suspense>
           </div>
         </div>
       )}

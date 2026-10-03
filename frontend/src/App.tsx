@@ -1,33 +1,53 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import { ThemeProvider, useTheme } from './ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 
-// Dynamic route-based lazy loading
+// Core study & interview pages — bundled directly for INSTANT 0ms tab switching
+import HomePage from './pages/HomePage';
+import HLDCaseStudiesPage from './pages/HLDCaseStudiesPage';
+import SystemDesignPatternsPage from './pages/SystemDesignPatternsPage';
+import AlgorithmPatternsPage from './pages/AlgorithmPatternsPage';
+import DesignPatternsPage from './pages/DesignPatternsPage';
+import LearningHubPage from './pages/LearningHubPage';
+import ProblemsPage from './pages/ProblemsPage';
+import InterviewQuestionsPage from './pages/InterviewQuestionsPage';
+import ProfilePage from './pages/ProfilePage';
+
+// Heavy secondary tools — isolated into lazy chunks to keep initial bundle light
 const OpenRouterChat = lazy(() => import('./components/OpenRouterChat'));
-const HomePage = lazy(() => import('./pages/HomePage'));
-const AlgorithmPatternsPage = lazy(() => import('./pages/AlgorithmPatternsPage'));
-const SystemDesignPatternsPage = lazy(() => import('./pages/SystemDesignPatternsPage'));
-const DesignPatternsPage = lazy(() => import('./pages/DesignPatternsPage'));
-const LearningHubPage = lazy(() => import('./pages/LearningHubPage'));
-const ProblemsPage = lazy(() => import('./pages/ProblemsPage'));
 const CanvasPage = lazy(() => import('./pages/CanvasPage'));
 const CodeEditorPage = lazy(() => import('./pages/CodeEditorPage'));
-const InterviewQuestionsPage = lazy(() => import('./pages/InterviewQuestionsPage'));
+const ResumePage = lazy(() => import('./pages/ResumePage'));
 const HackerRankPage = lazy(() => import('./pages/HackerRankPage'));
 const MockInterviewPage = lazy(() => import('./pages/MockInterviewPage'));
-const ResumePage = lazy(() => import('./pages/ResumePage'));
-const HLDCaseStudiesPage = lazy(() => import('./pages/HLDCaseStudiesPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
-const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+
+// Silently prefetch heavy pages after initial paint so they are instant when clicked
+function useBackgroundPrefetch() {
+  useEffect(() => {
+    const prefetch = () => {
+      import('./pages/CanvasPage');
+      import('./pages/CodeEditorPage');
+      import('./pages/ResumePage');
+      import('./components/OpenRouterChat');
+    };
+    if ('requestIdleCallback' in window) {
+      // @ts-ignore
+      window.requestIdleCallback(prefetch, { timeout: 3000 });
+    } else {
+      setTimeout(prefetch, 2000);
+    }
+  }, []);
+}
 
 function RouteLoadingFallback() {
   return (
     <div className="flex h-full w-full items-center justify-center min-h-[50vh]">
       <div className="flex flex-col items-center gap-3">
         <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
-        <span className="text-xs text-gray-400 font-mono">Loading view...</span>
+        <span className="text-xs text-gray-400 font-mono">Loading tool...</span>
       </div>
     </div>
   );
@@ -36,6 +56,7 @@ function RouteLoadingFallback() {
 function AppContent() {
   const { theme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  useBackgroundPrefetch();
 
   return (
     <BrowserRouter>
