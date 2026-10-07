@@ -10,7 +10,7 @@ interface Message {
 
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || '';
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const FREE_CODING_MODEL = 'meta-llama/llama-3.3-70b-instruct'; // Llama-3.3-70B-Instruct, best for coding and chat
+const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'openrouter/free';
 
 export default function OpenRouterChat() {
   // const { theme } = useTheme();
@@ -78,7 +78,7 @@ export default function OpenRouterChat() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: FREE_CODING_MODEL,
+          model: OPENROUTER_MODEL,
           messages: [
             ...messages.map(m => ({ role: m.role, content: m.content })),
             { role: 'user', content: userMsg.content }
@@ -86,7 +86,10 @@ export default function OpenRouterChat() {
           max_tokens: 1024,
         })
       });
-      if (!res.ok) throw new Error(`OpenRouter returned ${res.status}`);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.error?.message || `OpenRouter returned ${res.status}`);
+      }
       const data = await res.json();
       const assistantMsg = data.choices?.[0]?.message?.content || 'No response.';
       setMessages(prev => [...prev, { role: 'assistant', content: assistantMsg }]);
