@@ -44,12 +44,13 @@ export const hackerrankProblems: HRProblem[] = [
     id: 'proximity-request-routing',
     title: 'Proximity Request Routing',
     difficulty: 'Hard',
-    tags: ['Data Structures', 'Simulation', 'Geospatial', 'System Design'],
+    company: 'Stripe',
+    tags: ['Data Structures', 'Simulation', 'Geospatial', 'System Design', 'Stripe'],
     source: 'HackerRank',
     usedInInterview: true,
     timeLimitMinutes: 90,
     summary:
-      'Build a request routing system for a global payment processing platform. The router selects the optimal datacenter based on geographic proximity, health status, and capacity constraints.',
+      'Build a production request routing engine for Stripe\'s global payment processing platform. The router ingests CLI commands to register datacenters, track health states, calculate great-circle distances via the Haversine formula, and dynamically route client requests to the closest healthy datacenter with available capacity, falling back gracefully under load.',
     inputOutputFormat:
       'Your program reads commands from stdin and writes results to stdout. Each command is on a separate line.',
     outputRules: [
@@ -312,6 +313,6 @@ public class Solution {
 }`,
     },
     notes:
-      'This problem was encountered during an interview.',
+      'Asked in Stripe Technical Screen & Live Pairing Rounds. Stripe engineers evaluate clean modular decomposition, zero magic numbers (Earth radius constant 6371 km), robust coordinate range validation, deterministic alphabetical tie-breaking, and state retention across consecutive routing events.',
   },
 ];

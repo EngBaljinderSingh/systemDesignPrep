@@ -9,6 +9,7 @@ import {
 
 const CATEGORY_ICONS: Record<PatternCategory, string> = {
   SOLID:      '🏛️',
+  Principles: '⚡',
   Creational: '🏗️',
   Structural: '🔩',
   Behavioral: '🎭',
@@ -16,6 +17,7 @@ const CATEGORY_ICONS: Record<PatternCategory, string> = {
 
 const CATEGORY_DESCRIPTIONS: Record<PatternCategory, string> = {
   SOLID:      'Five design principles that make software more maintainable and flexible.',
+  Principles: 'Foundational engineering principles: KISS, YAGNI, and DRY for simple, lean, and maintainable software.',
   Creational: 'Patterns that handle object creation mechanisms for reuse and flexibility.',
   Structural: 'Patterns that simplify the design by identifying a way to realize relationships among entities.',
   Behavioral: 'Patterns concerned with algorithms and the assignment of responsibilities between objects.',
@@ -118,10 +120,21 @@ function PatternDetail({ pattern }: { pattern: DesignPattern }) {
 export default function DesignPatternsPage() {
   const [selected, setSelected] = useState<DesignPattern>(designPatterns[0]);
   const [categoryFilter, setCategoryFilter] = useState<PatternCategory | 'All'>('All');
+  const [search, setSearch] = useState('');
 
-  const filtered = categoryFilter === 'All'
-    ? designPatterns
-    : designPatterns.filter((p) => p.category === categoryFilter);
+  const filtered = designPatterns.filter((p) => {
+    const matchCategory = categoryFilter === 'All' || p.category === categoryFilter;
+    const q = search.trim().toLowerCase();
+    if (!q) return matchCategory;
+    const matchSearch =
+      p.name.toLowerCase().includes(q) ||
+      (p.abbrev && p.abbrev.toLowerCase().includes(q)) ||
+      (p.aliases && p.aliases.some((a) => a.toLowerCase().includes(q))) ||
+      p.intent.toLowerCase().includes(q) ||
+      p.problem.toLowerCase().includes(q) ||
+      p.mnemonic.toLowerCase().includes(q);
+    return matchCategory && matchSearch;
+  });
 
   const grouped = CATEGORY_ORDER.reduce<Record<PatternCategory, DesignPattern[]>>((acc, cat) => {
     const patterns = filtered.filter((p) => p.category === cat);
@@ -133,54 +146,72 @@ export default function DesignPatternsPage() {
     <div className="flex h-[calc(100vh-3rem)]">
       {/* Sidebar */}
       <aside className="w-64 flex-shrink-0 border-r border-gray-700 flex flex-col">
-        {/* Category filter */}
-        <div className="p-3 border-b border-gray-700 space-y-2">
-          <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold px-1">Category</p>
-          <div className="flex flex-wrap gap-1">
-            {(['All', ...CATEGORY_ORDER] as const).map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setCategoryFilter(cat)}
-                className={`text-xs px-2 py-1 rounded transition-colors ${
-                  categoryFilter === cat
-                    ? 'bg-primary text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                {cat !== 'All' && CATEGORY_ICONS[cat as PatternCategory]}{' '}
-                {cat}
-              </button>
-            ))}
+        {/* Search & Category filter */}
+        <div className="p-3 border-b border-gray-700 space-y-2.5">
+          <div>
+            <input
+              type="text"
+              placeholder="Search patterns (KISS, YAGNI...)"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full px-3 py-1.5 text-xs bg-surface border border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-primary text-gray-200 placeholder-gray-500"
+            />
+          </div>
+
+          <div>
+            <p className="text-[11px] text-gray-400 uppercase tracking-wider font-semibold px-0.5 mb-1.5">Category</p>
+            <div className="flex flex-wrap gap-1">
+              {(['All', ...CATEGORY_ORDER] as const).map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setCategoryFilter(cat)}
+                  className={`text-xs px-2 py-0.5 rounded transition-colors ${
+                    categoryFilter === cat
+                      ? 'bg-primary text-white font-medium shadow-sm'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
+                  }`}
+                >
+                  {cat !== 'All' && CATEGORY_ICONS[cat as PatternCategory]}{' '}
+                  {cat}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Pattern list */}
         <div className="flex-1 overflow-y-auto py-2">
-          {Object.entries(grouped).map(([cat, patterns]) => (
-            <div key={cat} className="mb-2">
-              <div className="px-3 py-1.5 flex items-center gap-2">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  {CATEGORY_ICONS[cat as PatternCategory]} {cat}
-                </span>
-              </div>
-              {patterns.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => setSelected(p)}
-                  className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center gap-2 ${
-                    selected.id === p.id
-                      ? 'bg-primary/15 text-white border-r-2 border-primary'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  {p.abbrev && (
-                    <span className="w-5 text-xs font-bold text-primary shrink-0">{p.abbrev}</span>
-                  )}
-                  <span className="truncate">{p.name}</span>
-                </button>
-              ))}
+          {Object.keys(grouped).length === 0 ? (
+            <div className="p-4 text-center text-xs text-gray-500">
+              No patterns found for "{search}"
             </div>
-          ))}
+          ) : (
+            Object.entries(grouped).map(([cat, patterns]) => (
+              <div key={cat} className="mb-2">
+                <div className="px-3 py-1.5 flex items-center gap-2">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    {CATEGORY_ICONS[cat as PatternCategory]} {cat}
+                  </span>
+                </div>
+                {patterns.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelected(p)}
+                    className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center gap-2 ${
+                      selected.id === p.id
+                        ? 'bg-primary/15 text-white border-r-2 border-primary font-medium'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    {p.abbrev && (
+                      <span className="w-5 text-xs font-bold text-primary shrink-0">{p.abbrev}</span>
+                    )}
+                    <span className="truncate">{p.name}</span>
+                  </button>
+                ))}
+              </div>
+            ))
+          )}
         </div>
       </aside>
 

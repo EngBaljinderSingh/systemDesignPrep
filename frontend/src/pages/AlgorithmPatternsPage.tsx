@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { algorithmPatterns, type AlgorithmPattern } from '../data/algorithmPatterns';
 import PatternVisualization from '../components/PatternVisualization';
+import DSAlgorithmFlowchart from '../components/DSAlgorithmFlowchart';
 
 const CATEGORY_COLORS: Record<string, string> = {
   Array: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
@@ -18,17 +19,46 @@ const DIFFICULTY_COLORS = {
   Hard: 'text-red-400',
 };
 
-function PatternDetail({ pattern }: { pattern: AlgorithmPattern }) {
+function PatternDetail({
+  pattern,
+  onOpenFlowchart,
+}: {
+  pattern: AlgorithmPattern;
+  onOpenFlowchart: () => void;
+}) {
   return (
     <div className="space-y-5">
+      {/* Quick Flowchart Banner */}
+      <div className="rounded-xl border border-primary/25 bg-gradient-to-r from-primary/10 via-surface to-surface-dark p-3.5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="text-xl">🗺️</span>
+          <div>
+            <div className="text-xs font-bold text-white">Array & Sequence Approach Flowchart</div>
+            <div className="text-[11px] text-gray-400">
+              Not sure which pattern fits your problem? Check the visual decision tree & LeetCode cheat sheet.
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={onOpenFlowchart}
+          className="text-xs px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-white font-medium transition-colors shrink-0 flex items-center gap-1 shadow-sm"
+        >
+          View DS Flowchart ↗
+        </button>
+      </div>
+
       {/* Header */}
       <div className="flex items-center gap-3 flex-wrap">
         <h2 className="text-xl font-bold text-white">{pattern.name}</h2>
         <span className={`text-xs px-2 py-0.5 rounded-full border ${CATEGORY_COLORS[pattern.category]}`}>
           {pattern.category}
         </span>
-        <span className="text-xs text-gray-400 bg-white/5 px-2 py-0.5 rounded">⏱ {pattern.timeComplexity}</span>
-        <span className="text-xs text-gray-400 bg-white/5 px-2 py-0.5 rounded">💾 {pattern.spaceComplexity}</span>
+        <span className="text-xs text-gray-400 bg-white/5 px-2 py-0.5 rounded font-mono">
+          ⏱ {pattern.timeComplexity}
+        </span>
+        <span className="text-xs text-gray-400 bg-white/5 px-2 py-0.5 rounded font-mono">
+          💾 {pattern.spaceComplexity}
+        </span>
       </div>
 
       {/* Description */}
@@ -53,7 +83,7 @@ function PatternDetail({ pattern }: { pattern: AlgorithmPattern }) {
       {/* Code template */}
       <div>
         <h3 className="text-sm font-semibold text-white mb-2">Code Template</h3>
-        <pre className="bg-gray-900 rounded-lg p-4 text-xs text-gray-300 overflow-x-auto leading-relaxed border border-gray-700 whitespace-pre-wrap">
+        <pre className="bg-gray-900 rounded-lg p-4 text-xs text-gray-300 overflow-x-auto leading-relaxed border border-gray-700 whitespace-pre-wrap font-mono">
           {pattern.template}
         </pre>
       </div>
@@ -65,7 +95,7 @@ function PatternDetail({ pattern }: { pattern: AlgorithmPattern }) {
           {pattern.problems.map((p) => (
             <span
               key={p.id}
-              className="text-xs px-2 py-1 rounded bg-white/5 border border-gray-700 flex items-center gap-1.5"
+              className="text-xs px-2.5 py-1.5 rounded bg-white/5 border border-gray-700 flex items-center gap-1.5 text-gray-300"
             >
               <span className={DIFFICULTY_COLORS[p.difficulty]}>●</span>
               {p.title}
@@ -78,6 +108,7 @@ function PatternDetail({ pattern }: { pattern: AlgorithmPattern }) {
 }
 
 export default function AlgorithmPatternsPage() {
+  const [activeTab, setActiveTab] = useState<'catalog' | 'flowchart'>('catalog');
   const [selected, setSelected] = useState<AlgorithmPattern>(algorithmPatterns[0]);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
@@ -90,60 +121,112 @@ export default function AlgorithmPatternsPage() {
     return matchSearch && matchCat;
   });
 
-  return (
-    <div className="flex h-[calc(100vh-3rem)]">
-      {/* Sidebar */}
-      <aside className="w-64 flex-shrink-0 border-r border-gray-700 flex flex-col">
-        <div className="p-3 space-y-2 border-b border-gray-700">
-          <input
-            type="text"
-            placeholder="Search patterns…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm bg-surface border border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-          <div className="flex flex-wrap gap-1">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setCategoryFilter(cat)}
-                className={`text-xs px-2 py-0.5 rounded border transition-colors ${
-                  categoryFilter === cat
-                    ? 'bg-primary text-white border-primary'
-                    : 'border-gray-700 text-gray-400 hover:text-white'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </div>
-        <ul className="overflow-y-auto flex-1">
-          {filtered.map((p) => (
-            <li key={p.id}>
-              <button
-                onClick={() => setSelected(p)}
-                className={`w-full text-left px-4 py-3 text-sm border-b border-gray-800 transition-colors ${
-                  selected.id === p.id
-                    ? 'bg-primary/10 text-white border-l-2 border-l-primary'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <div className="font-medium">{p.name}</div>
-                <div className={`text-xs mt-0.5 ${CATEGORY_COLORS[p.category].split(' ')[1]}`}>{p.category}</div>
-              </button>
-            </li>
-          ))}
-          {filtered.length === 0 && (
-            <li className="px-4 py-6 text-sm text-gray-500 text-center">No patterns match</li>
-          )}
-        </ul>
-      </aside>
+  const handleSelectPatternFromFlowchart = (patternId: string) => {
+    const found = algorithmPatterns.find((p) => p.id === patternId);
+    if (found) {
+      setSelected(found);
+      setActiveTab('catalog');
+    }
+  };
 
-      {/* Detail panel */}
-      <main className="flex-1 overflow-y-auto p-6">
-        <PatternDetail pattern={selected} />
-      </main>
+  return (
+    <div className="flex flex-col h-[calc(100vh-3rem)]">
+      {/* Top Navigation Switcher */}
+      <div className="flex items-center justify-between px-6 py-2.5 border-b border-gray-700 bg-surface">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setActiveTab('catalog')}
+            className={`text-xs px-3.5 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 ${
+              activeTab === 'catalog'
+                ? 'bg-primary text-white shadow-sm shadow-primary/20'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <span>⚡</span> Algorithm Patterns Catalog
+          </button>
+          <button
+            onClick={() => setActiveTab('flowchart')}
+            className={`text-xs px-3.5 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 ${
+              activeTab === 'flowchart'
+                ? 'bg-primary text-white shadow-sm shadow-primary/20'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <span>🗺️</span> DS Decision Flowchart & Cheat Sheet
+          </button>
+        </div>
+
+        <div className="text-[11px] text-gray-500 hidden sm:block">
+          {activeTab === 'catalog' ? `${filtered.length} patterns available` : 'Decision Tree & LeetCode Guide'}
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      {activeTab === 'flowchart' ? (
+        <div className="flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full">
+          <DSAlgorithmFlowchart onSelectPattern={handleSelectPatternFromFlowchart} />
+        </div>
+      ) : (
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar */}
+          <aside className="w-64 flex-shrink-0 border-r border-gray-700 flex flex-col bg-surface">
+            <div className="p-3 space-y-2 border-b border-gray-700">
+              <input
+                type="text"
+                placeholder="Search patterns…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs bg-surface border border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-primary text-gray-200"
+              />
+              <div className="flex flex-wrap gap-1">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setCategoryFilter(cat)}
+                    className={`text-xs px-2 py-0.5 rounded border transition-colors ${
+                      categoryFilter === cat
+                        ? 'bg-primary text-white border-primary'
+                        : 'border-gray-700 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <ul className="overflow-y-auto flex-1 py-1">
+              {filtered.map((p) => (
+                <li key={p.id}>
+                  <button
+                    onClick={() => setSelected(p)}
+                    className={`w-full text-left px-4 py-2.5 text-sm border-b border-gray-800 transition-colors ${
+                      selected.id === p.id
+                        ? 'bg-primary/10 text-white border-l-2 border-l-primary font-medium'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <div className="font-medium text-xs text-white">{p.name}</div>
+                    <div className={`text-[11px] mt-0.5 ${CATEGORY_COLORS[p.category].split(' ')[1]}`}>
+                      {p.category}
+                    </div>
+                  </button>
+                </li>
+              ))}
+              {filtered.length === 0 && (
+                <li className="px-4 py-6 text-xs text-gray-500 text-center">No patterns match</li>
+              )}
+            </ul>
+          </aside>
+
+          {/* Detail panel */}
+          <main className="flex-1 overflow-y-auto p-6 bg-surface-dark">
+            <PatternDetail
+              pattern={selected}
+              onOpenFlowchart={() => setActiveTab('flowchart')}
+            />
+          </main>
+        </div>
+      )}
     </div>
   );
 }

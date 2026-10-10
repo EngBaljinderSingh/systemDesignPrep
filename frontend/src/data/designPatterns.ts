@@ -1,9 +1,10 @@
-export type PatternCategory = 'SOLID' | 'Creational' | 'Structural' | 'Behavioral';
+export type PatternCategory = 'SOLID' | 'Principles' | 'Creational' | 'Structural' | 'Behavioral';
 
 export interface DesignPattern {
   id: string;
   name: string;
   abbrev?: string;
+  aliases?: string[];
   category: PatternCategory;
   intent: string;
   problem: string;
@@ -15,10 +16,11 @@ export interface DesignPattern {
   mnemonic: string;
 }
 
-export const CATEGORY_ORDER: PatternCategory[] = ['SOLID', 'Creational', 'Structural', 'Behavioral'];
+export const CATEGORY_ORDER: PatternCategory[] = ['SOLID', 'Principles', 'Creational', 'Structural', 'Behavioral'];
 
 export const CATEGORY_COLORS: Record<PatternCategory, string> = {
   SOLID:       'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+  Principles:  'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
   Creational:  'bg-blue-500/20 text-blue-300 border-blue-500/30',
   Structural:  'bg-green-500/20 text-green-300 border-green-500/30',
   Behavioral:  'bg-purple-500/20 text-purple-300 border-purple-500/30',
@@ -211,6 +213,155 @@ class OrderService {
     ],
     relatedPatterns: ['srp', 'factory-method'],
     mnemonic: 'Electrical sockets don\'t care about the appliance — both depend on the standard plug shape.',
+  },
+
+  // ─── PRINCIPLES (KISS, YAGNI, DRY) ──────────────────────────────────────
+  {
+    id: 'kiss',
+    name: 'KISS (Keep It Simple, Stupid)',
+    abbrev: 'KISS',
+    aliases: ['kiss', 'keep it simple', 'keep it simple stupid'],
+    category: 'Principles',
+    intent: 'Most systems work best if they are kept simple rather than made complicated; avoid unnecessary cleverness.',
+    problem: 'Engineers prematurely anticipate complex scenarios and introduce excessive layers of abstraction, reflection, complex generic factories, and dynamic proxies for straightforward tasks that need only 5 lines of code.',
+    solution: 'Build the most direct, readable solution first. Do not add design patterns, indirection, or generic wrappers until concrete requirements or proven duplication demand them.',
+    javaExample: `// ❌ Over-engineered violation — 3 interfaces + factory for simple text upper-casing
+interface StringTransformerFactory { StringTransformer create(); }
+class UpperCaseTransformerFactory implements StringTransformerFactory {
+  public StringTransformer create() { return new UpperCaseTransformer(); }
+}
+class UpperCaseTransformer implements StringTransformer {
+  public String transform(String in) { return in.toUpperCase(); }
+}
+
+// ✅ KISS Applied — direct, clean, instantly testable & understandable
+public class StringUtil {
+  public static String toUpperCase(String input) {
+    if (input == null) return "";
+    return input.toUpperCase();
+  }
+}
+
+// ✅ KISS in Architecture — straightforward Spring Service without premature event buses
+@Service
+public class OrderService {
+  private final OrderRepository repo;
+  public OrderService(OrderRepository repo) { this.repo = repo; }
+
+  @Transactional
+  public Order createOrder(OrderRequest req) {
+    // Direct validation & save. No unnecessary Kafka queue unless async scale requires it!
+    Order order = new Order(req.customerId(), req.amount());
+    return repo.save(order);
+  }
+}`,
+    consequences: [
+      'Drastically reduced cognitive load during code reviews and debugging',
+      'Fewer edge cases, zero ghost bugs from complex abstraction chains',
+      'Junior engineers can immediately contribute without reading 20-page architecture docs',
+      'Requires restraint: resisting the urge to show off technical "cleverness"',
+    ],
+    realWorldExamples: [
+      'Go programming language philosophy: simplicity & clarity over syntactic complexity',
+      'Unix philosophy: "Write programs that do one thing and do it simply"',
+      'Using a plain HashMap instead of introducing an in-memory distributed cache prematurely',
+    ],
+    relatedPatterns: ['yagni', 'srp', 'facade'],
+    mnemonic: 'Keep It Simple, Stupid: If you cannot explain the code to a teammate in 30 seconds, it is too complex.',
+  },
+  {
+    id: 'yagni',
+    name: 'YAGNI (You Aren\'t Gonna Need It)',
+    abbrev: 'YAGNI',
+    aliases: ['yagni', 'yagami', 'you arent gonna need it', 'you aren\'t gonna need it'],
+    category: 'Principles',
+    intent: 'Always implement things when you actually need them, never when you just foresee that you need them.',
+    problem: 'Developers build speculative features ("What if we need multi-tenancy?", "What if we switch from Postgres to Cassandra?", "What if we add 12 payment gateways?"). 70-80% of these hypothetical features are never used, become obsolete, and accumulate massive maintenance overhead.',
+    solution: 'Implement only the minimum functionality needed to satisfy today\'s acceptance criteria. Rely on modular architecture and automated unit tests to refactor easily when new requirements actually arrive.',
+    javaExample: `// ❌ YAGNI Violation — Speculative support for 5 DB engines, plugins, and crypto algorithms
+class UserRepository {
+  // Built "just in case" but the company only uses PostgreSQL!
+  void saveToMongo(User u)      { throw new UnsupportedOperationException(); }
+  void saveToCassandra(User u)  { throw new UnsupportedOperationException(); }
+  void saveWithQuantumCrypto(User u) { /* 200 lines of unmaintained speculative code */ }
+}
+
+// ✅ YAGNI Applied — Clean, laser-focused on current actual requirements
+@Repository
+public class UserRepository {
+  private final JdbcTemplate jdbc;
+  public UserRepository(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+
+  public void save(User user) {
+    jdbc.update("INSERT INTO users(id, name, email) VALUES (?, ?, ?)",
+      user.id(), user.name(), user.email());
+  }
+}
+
+// If the business ever asks for MongoDB 2 years later, add it THEN — not today!`,
+    consequences: [
+      'Zero maintenance cost for code that was never written',
+      'Faster cycle times and rapid delivery of user-facing value',
+      'Avoids locking the architecture into speculative assumptions that turn out wrong',
+      'Requires strong unit tests so future expansion via refactoring is risk-free',
+    ],
+    realWorldExamples: [
+      'Extreme Programming (XP) and Agile core practice',
+      'Basecamp (37signals) philosophy: "Shape your work to only what you need now"',
+      'Startups building monolithic Postgres services instead of premature microservices',
+    ],
+    relatedPatterns: ['kiss', 'ocp'],
+    mnemonic: 'YAGNI (often remembered as Yagami): Code you never write has 0 bugs, needs 0 tests, and costs $0 to maintain.',
+  },
+  {
+    id: 'dry',
+    name: 'DRY (Don\'t Repeat Yourself)',
+    abbrev: 'DRY',
+    aliases: ['dry', 'dont repeat yourself', 'don\'t repeat yourself'],
+    category: 'Principles',
+    intent: 'Every piece of knowledge must have a single, unambiguous, authoritative representation within a system.',
+    problem: 'Copy-pasting identical validation rules, business fee logic, or SQL queries across multiple classes. When a bug fix or regulatory change occurs, developers update one place and forget the copies, leading to critical data bugs.',
+    solution: 'Extract core business rules and shared algorithms into single authoritative classes, utility methods, or domain value objects.',
+    javaExample: `// ❌ DRY Violation — Duplicated discount & VAT tax logic across 3 controllers
+class CheckoutController {
+  double getFinalTotal(double subtotal) {
+    double discounted = subtotal > 100 ? subtotal * 0.9 : subtotal;
+    return discounted * 1.19; // 19% German VAT hardcoded here
+  }
+}
+class InvoiceController {
+  double computeInvoice(double subtotal) {
+    // If VAT changes to 20%, this class might be missed!
+    return (subtotal > 100 ? subtotal * 0.9 : subtotal) * 1.19; 
+  }
+}
+
+// ✅ DRY Applied — Single source of truth for pricing calculations
+@Component
+public class TaxAndDiscountEngine {
+  private static final double VAT_RATE = 0.19;
+  private static final double BULK_DISCOUNT_THRESHOLD = 100.0;
+  private static final double BULK_DISCOUNT_MULTIPLIER = 0.9;
+
+  public double calculateTotal(double subtotal) {
+    double afterDiscount = subtotal > BULK_DISCOUNT_THRESHOLD 
+      ? subtotal * BULK_DISCOUNT_MULTIPLIER 
+      : subtotal;
+    return afterDiscount * (1.0 + VAT_RATE);
+  }
+}`,
+    consequences: [
+      'System-wide consistency: changes and bug fixes apply everywhere automatically',
+      'Cleaner, more modular codebase with fewer total lines of code',
+      'Caution: Avoid "accidental duplication" coupling — only DRY up logic that represents the exact same domain concept',
+    ],
+    realWorldExamples: [
+      'Database normalization (3NF) to eliminate data redundancy',
+      'Spring validation annotations (@Valid, custom @Constraint)',
+      'Shared CSS design tokens / Tailwind theme config',
+    ],
+    relatedPatterns: ['srp', 'template-method', 'kiss'],
+    mnemonic: 'Don\'t Repeat Yourself: Write once, modify once. If business logic changes, only one file should need edits.',
   },
 
   // ─── CREATIONAL ─────────────────────────────────────────────────────────
