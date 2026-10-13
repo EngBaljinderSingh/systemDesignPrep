@@ -545,6 +545,7 @@ function CaseStudyDetail({ cs }: { cs: HLDCaseStudy }) {
 export default function HLDCaseStudiesPage() {
   const [selected, setSelected] = useState<string>('rules');
   const [isProModalOpen, setIsProModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 768 : true));
 
   const sidebarItems = [
     { id: 'rules', label: 'Universal Formulas', icon: '📐', subtitle: 'Rules of Thumb & Math', category: 'General' },
@@ -557,16 +558,44 @@ export default function HLDCaseStudiesPage() {
     })),
   ];
 
+  const currentItem = sidebarItems.find(i => i.id === selected) || sidebarItems[0];
+
   return (
-    <div className="flex h-[calc(100vh-3rem)]">
+    <div className="flex h-full min-h-[calc(100vh-3rem)] relative overflow-hidden">
+      {/* Mobile Backdrop */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-30 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar with categories */}
-      <aside className="w-64 flex-shrink-0 border-r border-gray-700/80 flex flex-col bg-surface select-none">
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-40 bg-surface flex flex-col w-72 max-w-[85vw] border-r border-gray-700/80 transition-transform duration-200 ease-in-out select-none shadow-2xl md:shadow-none
+          md:static md:z-auto
+          ${isSidebarOpen
+            ? 'translate-x-0 md:w-64 md:flex'
+            : '-translate-x-full md:w-0 md:hidden md:border-none'
+          }
+        `}
+      >
         <div className="p-4 border-b border-gray-700/80">
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">HLD Architectures</p>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold font-mono">
-              5 Studies
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold font-mono">
+                5 Studies
+              </span>
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="p-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                title="Close panel"
+              >
+                <span className="text-xs font-mono">✕</span>
+              </button>
+            </div>
           </div>
           <p className="text-[11px] text-gray-500 mt-0.5">Real scale & bottleneck math</p>
         </div>
@@ -575,8 +604,13 @@ export default function HLDCaseStudiesPage() {
           {sidebarItems.map((item) => (
             <li key={item.id}>
               <button
-                onClick={() => setSelected(item.id)}
-                className={`w-full text-left px-3 py-2.5 rounded-xl transition-all ${
+                onClick={() => {
+                  setSelected(item.id);
+                  if (window.innerWidth < 768) {
+                    setIsSidebarOpen(false);
+                  }
+                }}
+                className={`w-full text-left px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
                   selected === item.id
                     ? 'bg-primary/15 text-white border border-primary/30 shadow-sm'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -597,7 +631,6 @@ export default function HLDCaseStudiesPage() {
         </ul>
 
         {/* Pro Callout in Sidebar */}
-        {/* Buy Me a Coffee Support Card */}
         <div className="p-3 border-t border-gray-800 bg-surface-light/40">
           <div className="bg-gradient-to-br from-amber-500/10 via-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-xl p-3 text-center">
             <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-white mb-1">
@@ -618,7 +651,43 @@ export default function HLDCaseStudiesPage() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+      <main className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        {/* Top Control Bar for toggling sidebar */}
+        <div className="mb-4 flex items-center justify-between gap-3 border-b border-gray-800 pb-3">
+          <div className="flex items-center gap-2">
+            {!isSidebarOpen ? (
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 transition-colors shadow-sm cursor-pointer"
+                title="Show studies list"
+              >
+                <span>📐</span>
+                <span>Case Studies List ({sidebarItems.length})</span>
+                <span className="text-[10px]">▶</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 border border-gray-700 transition-colors cursor-pointer"
+                title="Collapse sidebar panel"
+              >
+                <span>◀</span>
+                <span>Collapse Panel</span>
+              </button>
+            )}
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="md:hidden inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg bg-surface border border-gray-700 text-gray-200 hover:text-white"
+            >
+              <span>📐</span> Select Case Study
+            </button>
+          </div>
+          <div className="text-xs text-gray-400 flex items-center gap-1.5 truncate">
+            <span className="text-gray-500 hidden sm:inline">Active:</span>
+            <span className="font-semibold text-white truncate">{currentItem.label}</span>
+          </div>
+        </div>
+
         {selected === 'rules' ? (
           <CapacityRulesPanel />
         ) : (

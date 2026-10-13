@@ -217,6 +217,7 @@ export default function LearningHubPage() {
   const [selectedSubtopic, setSelectedSubtopic] = useState<LearningSubtopic | null>(null);
   const [categoryFilter, setCategoryFilter]     = useState<TopicCategory | 'All'>('All');
   const [search, setSearch]                     = useState('');
+  const [isSidebarOpen, setIsSidebarOpen]       = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 768 : true));
 
   // Count concepts per topic
   function countConcepts(topic: LearningTopic) {
@@ -245,14 +246,40 @@ export default function LearningHubPage() {
   const learnedAll = learningTopics.reduce((sum, t) => sum + countLearned(t), 0);
 
   return (
-    <div className="flex h-[calc(100vh-3rem)] overflow-hidden">
+    <div className="flex h-full min-h-[calc(100vh-3rem)] relative overflow-hidden">
+      {/* Mobile Backdrop */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-30 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* ── Left panel: topic selector ──────────────────────────────────── */}
-      <aside className="w-80 flex-shrink-0 border-r border-gray-700 flex flex-col">
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-40 bg-surface flex flex-col w-80 max-w-[85vw] border-r border-gray-700 transition-transform duration-200 ease-in-out shadow-2xl md:shadow-none
+          md:static md:z-auto
+          ${isSidebarOpen
+            ? 'translate-x-0 md:w-80 md:flex'
+            : '-translate-x-full md:w-0 md:hidden md:border-none'
+          }
+        `}
+      >
         {/* Header + overall progress */}
         <div className="p-4 border-b border-gray-700 space-y-3">
-          <div>
-            <h1 className="text-base font-bold text-white">Learning Hub</h1>
-            <p className="text-xs text-gray-500">{learnedAll}/{totalAll} concepts learned</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-base font-bold text-white">Learning Hub</h1>
+              <p className="text-xs text-gray-500">{learnedAll}/{totalAll} concepts learned</p>
+            </div>
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="p-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              title="Close panel"
+            >
+              <span className="text-xs font-mono">✕</span>
+            </button>
           </div>
           <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
             <div
@@ -276,7 +303,7 @@ export default function LearningHubPage() {
               <button
                 key={cat}
                 onClick={() => setCategoryFilter(cat)}
-                className={`text-xs px-2 py-0.5 rounded transition-colors ${
+                className={`text-xs px-2 py-0.5 rounded transition-colors cursor-pointer ${
                   categoryFilter === cat
                     ? 'bg-primary text-white'
                     : 'text-gray-500 hover:text-white hover:bg-white/5'
@@ -298,7 +325,12 @@ export default function LearningHubPage() {
                 isSelected={selectedTopic?.id === topic.id}
                 learnedCount={countLearned(topic)}
                 totalCount={countConcepts(topic)}
-                onClick={() => setSelectedTopic(topic)}
+                onClick={() => {
+                  setSelectedTopic(topic);
+                  if (window.innerWidth < 768) {
+                    setIsSidebarOpen(false);
+                  }
+                }}
               />
             ))}
             {filteredTopics.length === 0 && (
@@ -310,20 +342,31 @@ export default function LearningHubPage() {
 
       {/* ── Right area: subtopics + concepts ────────────────────────────── */}
       {selectedTopic ? (
-        <div className="flex-1 flex overflow-hidden">
-          {/* Subtopic sidebar */}
-          <div className="w-52 flex-shrink-0 border-r border-gray-700 flex flex-col">
-            {/* Topic header with gradient */}
-            <div className={`p-4 bg-gradient-to-br ${selectedTopic.gradient} bg-opacity-10`}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-2xl">{selectedTopic.icon}</span>
-                <span className="text-base font-bold text-white">{selectedTopic.name}</span>
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-w-0">
+          {/* Subtopic sidebar: horizontal scrollable on mobile, column on desktop */}
+          <div className="w-full md:w-56 flex-shrink-0 border-b md:border-b-0 md:border-r border-gray-700 flex flex-col bg-surface/40">
+            {/* Top Toolbar in Topic Header */}
+            <div className={`p-3 sm:p-4 bg-gradient-to-br ${selectedTopic.gradient} bg-opacity-10`}>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <div className="flex items-center gap-2 truncate">
+                  <span className="text-2xl shrink-0">{selectedTopic.icon}</span>
+                  <span className="text-sm sm:text-base font-bold text-white truncate">{selectedTopic.name}</span>
+                </div>
+                {!isSidebarOpen && (
+                  <button
+                    onClick={() => setIsSidebarOpen(true)}
+                    className="shrink-0 px-2 py-1 text-[11px] font-semibold rounded bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors cursor-pointer"
+                    title="Change topic"
+                  >
+                    🎓 Topics
+                  </button>
+                )}
               </div>
-              <p className="text-xs text-white/70">{selectedTopic.tagline}</p>
+              <p className="text-xs text-white/70 line-clamp-1">{selectedTopic.tagline}</p>
             </div>
 
-            {/* Subtopic list */}
-            <div className="flex-1 overflow-y-auto py-2">
+            {/* Subtopic list: horizontal scroll on mobile, vertical list on desktop */}
+            <div className="flex md:flex-col overflow-x-auto md:overflow-y-auto py-2 px-2 md:px-0 gap-1 md:gap-0 shrink-0">
               {selectedTopic.subtopics.map((sub) => {
                 const subLearned = sub.concepts.filter((c) => learned.has(c.id)).length;
                 const isActive   = selectedSubtopic?.id === sub.id;
@@ -331,18 +374,18 @@ export default function LearningHubPage() {
                   <button
                     key={sub.id}
                     onClick={() => setSelectedSubtopic(sub)}
-                    className={`w-full text-left px-3 py-2.5 transition-colors ${
+                    className={`whitespace-nowrap md:whitespace-normal shrink-0 md:shrink md:w-full text-left px-3 py-2 md:py-2.5 rounded-lg md:rounded-none transition-colors cursor-pointer ${
                       isActive
-                        ? 'bg-primary/15 border-r-2 border-primary text-white'
-                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                        ? 'bg-primary/20 md:bg-primary/15 md:border-r-2 md:border-primary text-white border border-primary/30 md:border-none'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
                     }`}
                   >
                     <div className="text-xs font-medium leading-tight">{sub.name}</div>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className={`text-xs px-1.5 py-0.5 rounded border ${LEVEL_COLORS[sub.level]}`}>
+                    <div className="flex items-center justify-between gap-2 mt-1">
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded border ${LEVEL_COLORS[sub.level]}`}>
                         {sub.level}
                       </span>
-                      <span className="text-xs text-gray-600">{subLearned}/{sub.concepts.length}</span>
+                      <span className="text-[10px] text-gray-500">{subLearned}/{sub.concepts.length}</span>
                     </div>
                   </button>
                 );
@@ -351,7 +394,45 @@ export default function LearningHubPage() {
           </div>
 
           {/* Concepts detail panel */}
-          <main className="flex-1 overflow-y-auto p-5 space-y-4">
+          <main className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-5 space-y-4 bg-surface-dark">
+            {/* Top Toolbar to toggle sidebar */}
+            <div className="flex items-center justify-between gap-2 pb-1 border-b border-gray-800/80">
+              <div className="flex items-center gap-2">
+                {!isSidebarOpen ? (
+                  <button
+                    onClick={() => setIsSidebarOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 transition-colors shadow-sm cursor-pointer"
+                    title="Show topics list"
+                  >
+                    <span>🎓</span>
+                    <span>All Topics ({filteredTopics.length})</span>
+                    <span className="text-[10px]">▶</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 border border-gray-700 transition-colors cursor-pointer"
+                    title="Collapse sidebar panel"
+                  >
+                    <span>◀</span>
+                    <span>Collapse Topics</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="md:hidden inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg bg-surface border border-gray-700 text-gray-200 hover:text-white"
+                >
+                  <span>🎓</span> Change Topic
+                </button>
+              </div>
+              {selectedSubtopic && (
+                <div className="text-xs text-gray-400 truncate">
+                  <span className="text-gray-500 hidden sm:inline">Module: </span>
+                  <span className="font-semibold text-white">{selectedSubtopic.name}</span>
+                </div>
+              )}
+            </div>
+
             {selectedSubtopic ? (
               <>
                 <div>

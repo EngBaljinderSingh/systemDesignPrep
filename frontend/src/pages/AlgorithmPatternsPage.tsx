@@ -112,6 +112,7 @@ export default function AlgorithmPatternsPage() {
   const [selected, setSelected] = useState<AlgorithmPattern>(algorithmPatterns[0]);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 768 : true));
 
   const categories = ['All', ...Array.from(new Set(algorithmPatterns.map((p) => p.category)))];
 
@@ -126,51 +127,97 @@ export default function AlgorithmPatternsPage() {
     if (found) {
       setSelected(found);
       setActiveTab('catalog');
+      if (window.innerWidth < 768) {
+        setIsSidebarOpen(false);
+      }
     }
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3rem)]">
+    <div className="flex flex-col h-full min-h-[calc(100vh-3rem)]">
       {/* Top Navigation Switcher */}
-      <div className="flex items-center justify-between px-6 py-2.5 border-b border-gray-700 bg-surface">
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 border-b border-gray-700 bg-surface gap-2 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
           <button
             onClick={() => setActiveTab('catalog')}
-            className={`text-xs px-3.5 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 ${
+            className={`text-xs px-2.5 sm:px-3.5 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'catalog'
                 ? 'bg-primary text-white shadow-sm shadow-primary/20'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            <span>⚡</span> Algorithm Patterns Catalog
+            <span>⚡</span>
+            <span>Patterns <span className="hidden sm:inline">Catalog</span></span>
           </button>
           <button
             onClick={() => setActiveTab('flowchart')}
-            className={`text-xs px-3.5 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 ${
+            className={`text-xs px-2.5 sm:px-3.5 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'flowchart'
                 ? 'bg-primary text-white shadow-sm shadow-primary/20'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            <span>🗺️</span> DS Decision Flowchart & Cheat Sheet
+            <span>🗺️</span>
+            <span>DS Flowchart <span className="hidden sm:inline">& Guide</span></span>
           </button>
         </div>
 
-        <div className="text-[11px] text-gray-500 hidden sm:block">
-          {activeTab === 'catalog' ? `${filtered.length} patterns available` : 'Decision Tree & LeetCode Guide'}
+        <div className="flex items-center gap-2">
+          {activeTab === 'catalog' && (
+            <button
+              onClick={() => setIsSidebarOpen((v) => !v)}
+              className="text-xs px-2.5 py-1 rounded-lg border border-gray-700 hover:border-gray-500 text-gray-300 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer"
+              title={isSidebarOpen ? 'Close sidebar panel' : 'Open patterns list'}
+            >
+              <span>📋</span>
+              <span>{isSidebarOpen ? 'Hide List' : `List (${filtered.length})`}</span>
+            </button>
+          )}
+          <span className="text-[11px] text-gray-500 hidden md:inline">
+            {activeTab === 'catalog' ? `${filtered.length} patterns` : 'Decision Tree & Guide'}
+          </span>
         </div>
       </div>
 
       {/* Main Content Area */}
       {activeTab === 'flowchart' ? (
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 w-full max-w-7xl mx-auto">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 w-full max-w-7xl mx-auto">
           <DSAlgorithmFlowchart onSelectPattern={handleSelectPatternFromFlowchart} />
         </div>
       ) : (
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden relative">
+          {/* Mobile Backdrop */}
+          {isSidebarOpen && (
+            <div
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs z-30 md:hidden"
+              onClick={() => setIsSidebarOpen(false)}
+            />
+          )}
+
           {/* Sidebar */}
-          <aside className="w-64 flex-shrink-0 border-r border-gray-700 flex flex-col bg-surface">
+          <aside
+            className={`
+              fixed inset-y-0 left-0 z-40 bg-surface flex flex-col w-72 max-w-[85vw] border-r border-gray-700 transition-transform duration-200 ease-in-out shadow-2xl md:shadow-none
+              md:static md:z-auto
+              ${isSidebarOpen
+                ? 'translate-x-0 md:w-64 md:flex'
+                : '-translate-x-full md:w-0 md:hidden md:border-none'
+              }
+            `}
+          >
             <div className="p-3 space-y-2 border-b border-gray-700">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>⚡</span> Algo Patterns ({filtered.length})
+                </span>
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="p-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  title="Close panel"
+                >
+                  <span className="text-xs font-mono">✕</span>
+                </button>
+              </div>
               <input
                 type="text"
                 placeholder="Search patterns…"
@@ -183,7 +230,7 @@ export default function AlgorithmPatternsPage() {
                   <button
                     key={cat}
                     onClick={() => setCategoryFilter(cat)}
-                    className={`text-xs px-2 py-0.5 rounded border transition-colors ${
+                    className={`text-xs px-2 py-0.5 rounded border transition-colors cursor-pointer ${
                       categoryFilter === cat
                         ? 'bg-primary text-white border-primary'
                         : 'border-gray-700 text-gray-400 hover:text-white'
@@ -198,8 +245,13 @@ export default function AlgorithmPatternsPage() {
               {filtered.map((p) => (
                 <li key={p.id}>
                   <button
-                    onClick={() => setSelected(p)}
-                    className={`w-full text-left px-4 py-2.5 text-sm border-b border-gray-800 transition-colors ${
+                    onClick={() => {
+                      setSelected(p);
+                      if (window.innerWidth < 768) {
+                        setIsSidebarOpen(false);
+                      }
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm border-b border-gray-800 transition-colors cursor-pointer ${
                       selected.id === p.id
                         ? 'bg-primary/10 text-white border-l-2 border-l-primary font-medium'
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -219,7 +271,21 @@ export default function AlgorithmPatternsPage() {
           </aside>
 
           {/* Detail panel */}
-          <main className="flex-1 overflow-y-auto p-6 bg-surface-dark">
+          <main className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 bg-surface-dark">
+            {/* Top Bar for fast mobile toggle or desktop collapse state */}
+            {!isSidebarOpen && (
+              <div className="mb-4">
+                <button
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 transition-colors shadow-sm cursor-pointer"
+                  title="Show pattern list"
+                >
+                  <span>📋</span>
+                  <span>Browse Algorithm Patterns ({filtered.length})</span>
+                  <span className="text-[10px]">▶</span>
+                </button>
+              </div>
+            )}
             <PatternDetail
               pattern={selected}
               onOpenFlowchart={() => setActiveTab('flowchart')}

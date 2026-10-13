@@ -121,6 +121,7 @@ export default function DesignPatternsPage() {
   const [selected, setSelected] = useState<DesignPattern>(designPatterns[0]);
   const [categoryFilter, setCategoryFilter] = useState<PatternCategory | 'All'>('All');
   const [search, setSearch] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 768 : true));
 
   const filtered = designPatterns.filter((p) => {
     const matchCategory = categoryFilter === 'All' || p.category === categoryFilter;
@@ -143,11 +144,41 @@ export default function DesignPatternsPage() {
   }, {} as Record<PatternCategory, DesignPattern[]>);
 
   return (
-    <div className="flex h-[calc(100vh-3rem)]">
+    <div className="flex h-full min-h-[calc(100vh-3rem)] relative overflow-hidden">
+      {/* Mobile Backdrop */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-30 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 flex-shrink-0 border-r border-gray-700 flex flex-col">
-        {/* Search & Category filter */}
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-40 bg-surface flex flex-col w-72 max-w-[85vw] border-r border-gray-700 transition-transform duration-200 ease-in-out shadow-2xl md:shadow-none
+          md:static md:z-auto
+          ${isSidebarOpen
+            ? 'translate-x-0 md:w-64 md:flex'
+            : '-translate-x-full md:w-0 md:hidden md:border-none'
+          }
+        `}
+      >
+        {/* Header & Search & Category filter */}
         <div className="p-3 border-b border-gray-700 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🏛️</span> Patterns ({filtered.length})
+            </span>
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="p-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              title="Close panel"
+            >
+              <span className="text-xs font-mono">✕</span>
+            </button>
+          </div>
+
           <div>
             <input
               type="text"
@@ -165,7 +196,7 @@ export default function DesignPatternsPage() {
                 <button
                   key={cat}
                   onClick={() => setCategoryFilter(cat)}
-                  className={`text-xs px-2 py-0.5 rounded transition-colors ${
+                  className={`text-xs px-2 py-0.5 rounded transition-colors cursor-pointer ${
                     categoryFilter === cat
                       ? 'bg-primary text-white font-medium shadow-sm'
                       : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
@@ -196,8 +227,13 @@ export default function DesignPatternsPage() {
                 {patterns.map((p) => (
                   <button
                     key={p.id}
-                    onClick={() => setSelected(p)}
-                    className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center gap-2 ${
+                    onClick={() => {
+                      setSelected(p);
+                      if (window.innerWidth < 768) {
+                        setIsSidebarOpen(false);
+                      }
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center gap-2 cursor-pointer ${
                       selected.id === p.id
                         ? 'bg-primary/15 text-white border-r-2 border-primary font-medium'
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -216,10 +252,46 @@ export default function DesignPatternsPage() {
       </aside>
 
       {/* Detail */}
-      <main className="flex-1 overflow-y-auto bg-surface-dark">
+      <main className="flex-1 min-w-0 overflow-y-auto bg-surface-dark">
+        {/* Top Control Bar for toggling aside */}
+        <div className="px-4 py-2.5 border-b border-gray-800 flex items-center justify-between gap-3 bg-surface/60 sticky top-0 z-10 backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            {!isSidebarOpen ? (
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 transition-colors cursor-pointer shadow-sm"
+                title="Show patterns list"
+              >
+                <span>📋</span>
+                <span>Browse Patterns ({filtered.length})</span>
+                <span className="text-[10px]">▶</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 border border-gray-700 transition-colors cursor-pointer"
+                title="Collapse sidebar panel"
+              >
+                <span>◀</span>
+                <span>Collapse Panel</span>
+              </button>
+            )}
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="md:hidden inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg bg-surface border border-gray-700 text-gray-200 hover:text-white"
+            >
+              <span>📋</span> Change Pattern
+            </button>
+          </div>
+          <div className="text-xs text-gray-400 flex items-center gap-1.5 truncate">
+            <span className="text-gray-500 hidden sm:inline">Active:</span>
+            <span className="font-semibold text-white truncate">{selected.name}</span>
+          </div>
+        </div>
+
         {/* Page header when no category selected or All */}
         {categoryFilter === 'All' && selected.category && (
-          <div className="px-5 pt-5 pb-2 border-b border-gray-800">
+          <div className="px-5 pt-4 pb-2 border-b border-gray-800">
             <div className="flex items-center gap-3">
               <span className="text-2xl">{CATEGORY_ICONS[selected.category]}</span>
               <div>

@@ -92,9 +92,17 @@ export default function Navbar({ isOpen, onToggle }: NavbarProps) {
 
   return (
     <>
+      {/* Mobile backdrop overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-30 md:hidden"
+          onClick={onToggle}
+        />
+      )}
+
       <aside
         className={`fixed top-0 left-0 h-full z-40 flex flex-col transition-all duration-200 ease-in-out select-none ${
-          isOpen ? 'w-56' : 'w-14'
+          isOpen ? 'w-56 translate-x-0 shadow-2xl md:shadow-none' : '-translate-x-full md:translate-x-0 md:w-14'
         } ${border} border-r ${isLight ? 'bg-white' : 'bg-surface'}`}
       >
         {/* Top Header */}
@@ -115,6 +123,17 @@ export default function Navbar({ isOpen, onToggle }: NavbarProps) {
               </span>
             )}
           </div>
+          {isOpen && (
+            <button
+              onClick={onToggle}
+              className={`md:hidden p-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                isLight ? 'text-gray-500 hover:bg-gray-100' : 'text-gray-400 hover:bg-white/10 hover:text-white'
+              }`}
+              title="Close menu"
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         {/* Free Access Badge */}
@@ -143,6 +162,11 @@ export default function Navbar({ isOpen, onToggle }: NavbarProps) {
                   key={link.to}
                   to={link.to}
                   end={link.end}
+                  onClick={() => {
+                    if (window.innerWidth < 768) {
+                      onToggle();
+                    }
+                  }}
                   onMouseEnter={() => handlePreload(link.to)}
                   title={!isOpen ? link.label : undefined}
                   className={({ isActive }) =>

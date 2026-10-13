@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { Menu } from 'lucide-react';
 import Navbar from './components/Navbar';
 import { ThemeProvider, useTheme } from './ThemeContext';
 import { AuthProvider } from './context/AuthContext';
@@ -110,7 +111,7 @@ function MainRoutes() {
 
 function AppContent() {
   const { theme } = useTheme();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 1024 : true));
   useIdlePrefetch();
 
   return (
@@ -118,12 +119,39 @@ function AppContent() {
       <div className={`h-screen flex bg-surface ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
         <Navbar isOpen={sidebarOpen} onToggle={() => setSidebarOpen((prev) => !prev)} />
 
-        {/* Offset for the fixed sidebar */}
+        {/* Responsive container: no margin-left on mobile so content isn't shifted offscreen */}
         <div
-          className="flex-1 flex flex-col overflow-hidden transition-all duration-200"
-          style={{ marginLeft: sidebarOpen ? '224px' : '56px' }}
+          className={`flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-200 ${
+            sidebarOpen ? 'md:ml-56 ml-0' : 'md:ml-14 ml-0'
+          }`}
         >
-          <main className="flex-1 overflow-auto relative">
+          {/* Mobile Top Bar */}
+          <div
+            className={`md:hidden flex items-center justify-between px-3 py-2.5 border-b shrink-0 z-20 ${
+              theme === 'light' ? 'border-gray-200 bg-white' : 'border-gray-800 bg-surface'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                  theme === 'light' ? 'hover:bg-gray-100 text-gray-700' : 'hover:bg-white/10 text-gray-300'
+                }`}
+                aria-label="Open navigation menu"
+                title="Open navigation menu"
+              >
+                <Menu size={19} />
+              </button>
+              <span className={`font-black text-sm tracking-tight ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
+                SDP<span className="text-primary-400">.prep</span>
+              </span>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold uppercase tracking-wide">
+              100% Free
+            </span>
+          </div>
+
+          <main className="flex-1 min-w-0 overflow-auto relative">
             <Suspense fallback={null}>
               <OpenRouterChat />
             </Suspense>
